@@ -6,7 +6,7 @@ import {
 } from '@/graphql';
 import { PageInput, Post, User, UpdateProfileInput } from '@/graphql/types';
 import { createPageInput, formatGraphQLError } from '@/lib/utils';
-import { useAuth, useCurrentUser as useAuthUser } from './auth-apollo-hooks';
+import { useAuth } from './auth-context';
 import { updateUserInLocalStorage } from './auth';
 
 // 用户资料响应类型
@@ -31,9 +31,7 @@ export interface PostsResponse {
  */
 export function useCurrentUser(): UserProfileResponse {
   // 使用AuthContext提供的用户信息
-  const authUser = useAuthUser();
-  const auth = useAuth();
-  const loading = auth.loading;
+  const { user: authUser, loading: authLoading } = useAuth();
   
   const { data, loading: queryLoading, error, refetch } = useQuery(UserQueries.GET_ME, {
     fetchPolicy: 'network-only',
@@ -42,7 +40,7 @@ export function useCurrentUser(): UserProfileResponse {
 
   return {
     user: data?.me || authUser,
-    loading: loading || queryLoading,
+    loading: authLoading || queryLoading,
     error: error ? formatGraphQLError(error) : null,
     refetch: async () => { await refetch(); }
   };
@@ -248,12 +246,13 @@ export function useUpdateProfile() {
  * @param username 要检查的用户名
  */
 export function useIsCurrentUser(username: string | undefined) {
-  const currentUser = useAuthUser();
+  const { user: currentUser } = useAuth();
   
   // 如果没有传入用户名或当前没有登录用户，返回false
   if (!username || !currentUser) return false;
   
-  return currentUser.username === username;
+  // 检查用户名是否匹配
+  return currentUser.username.toLowerCase() === username.toLowerCase();
 }
 
 /**

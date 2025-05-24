@@ -6,7 +6,7 @@ import Image from 'next/image';
 import { User } from '@/graphql/types';
 import { formatDate } from '@/lib/utils';
 import { useFollowUser, useIsCurrentUser } from '@/lib/user-hooks';
-import { useCurrentUser } from '@/lib/auth-apollo-hooks';
+import { useAuth } from '@/lib/auth-context';
 
 interface UserProfileCardProps {
   user: User;
@@ -26,7 +26,7 @@ export function UserProfileCard({
   onFollowStatusChange,
 }: UserProfileCardProps) {
   const { follow, unfollow, loading } = useFollowUser();
-  const currentUser = useCurrentUser();
+  const { user: currentUser } = useAuth();
   const isCurrentUser = useIsCurrentUser(user?.username);
   
   // 处理关注/取消关注逻辑

@@ -5,7 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Post, MediaType } from '@/graphql/types';
 import { formatDate, formatNumber } from '@/lib/utils';
-import { useCurrentUser } from '@/lib/auth-apollo-hooks';
+import { useAuth } from '@/lib/auth-context';
 
 interface PostItemProps {
   post: Post;
@@ -22,7 +22,7 @@ export function PostItem({
   onLike,
   className = '',
 }: PostItemProps) {
-  const currentUser = useCurrentUser();
+  const { user: currentUser } = useAuth();
   const [isLiking, setIsLiking] = React.useState(false);
   
   // 处理点赞操作

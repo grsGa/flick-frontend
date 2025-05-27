@@ -26,7 +26,7 @@ function RegisterPage() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [displayName, setDisplayName] = useState('');
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
@@ -50,9 +50,8 @@ function RegisterPage() {
     setLoading(true);
 
     try {
-      // 调用注册API，使用可选的displayName
-      const actualDisplayName = displayName.trim() || username;
-      await register(email, username, password, actualDisplayName);
+      // 调用注册API
+      await register(email, username, password);
       
       // 注册成功，跳转到onboarding页面
       toast({
@@ -123,23 +122,7 @@ function RegisterPage() {
                 className="h-11"
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="displayName" className="text-sm font-medium">显示名称 (可选)</Label>
-              <Input
-                id="displayName"
-                type="text"
-                placeholder="您希望显示的名称"
-                value={displayName}
-                onChange={(e: ChangeEvent<HTMLInputElement>) => {
-                  setDisplayName(e.target.value);
-                  setError(null);
-                }}
-                className="h-11"
-              />
-              <p className="text-xs text-muted-foreground mt-1">
-                如不填写，将使用用户名作为显示名称
-              </p>
-            </div>
+
             <div className="space-y-2">
               <Label htmlFor="password" className="text-sm font-medium">密码</Label>
               <Input

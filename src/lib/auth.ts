@@ -29,7 +29,7 @@ interface JWTPayload {
 export const LOGIN_MUTATION = gql`
   mutation Login($input: LoginInput!) {
     login(input: $input) {
-      token
+      accessToken
       refreshToken
       expiresAt
       user {
@@ -58,7 +58,7 @@ export const LOGIN_MUTATION = gql`
 export const REGISTER_MUTATION = gql`
   mutation Register($input: RegisterInput!) {
     register(input: $input) {
-      token
+      accessToken
       refreshToken
       expiresAt
       user {
@@ -87,7 +87,7 @@ export const REGISTER_MUTATION = gql`
 export const REFRESH_TOKEN_MUTATION = gql`
   mutation RefreshToken($refreshToken: String!) {
     refreshToken(refreshToken: $refreshToken) {
-      token
+      accessToken
       refreshToken
       expiresAt
       user {
@@ -175,14 +175,26 @@ export const login = async (
 };
 
 /**
- * 用户注册
+ * 用户注册 - 直接使用创建的Apollo客户端版本
  */
 export const register = async (
+  email: string,
+  username: string,
+  password: string
+): Promise<AuthResponse> => {
+  // 创建Apollo客户端
+  const apolloClient = createApolloClient();
+  return registerWithClient(apolloClient, email, username, password);
+};
+
+/**
+ * 用户注册 - 使用传入的Apollo客户端版本
+ */
+export const registerWithClient = async (
   apolloClient: ApolloClient<NormalizedCacheObject>,
   email: string,
   username: string,
-  password: string,
-  displayName?: string
+  password: string
 ): Promise<AuthResponse> => {
   try {
     const { data } = await apolloClient.mutate({
@@ -191,8 +203,7 @@ export const register = async (
         input: {
           email,
           username,
-          password,
-          displayName
+          password
         }
       }
     });
@@ -257,13 +268,13 @@ export const refreshToken = async (
  * 保存认证数据
  */
 const saveAuthData = async (authResponse: AuthResponse): Promise<void> => {
-  const { token, refreshToken, user } = authResponse;
+  const { accessToken, refreshToken, user } = authResponse;
   
   console.log('开始保存认证数据...');
   
   // 保存令牌到localStorage
   if (typeof localStorage !== 'undefined') {
-    localStorage.setItem(AUTH_TOKEN_KEY, token);
+    localStorage.setItem(AUTH_TOKEN_KEY, accessToken);
     localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
     
     // 保存用户信息
@@ -281,7 +292,7 @@ const saveAuthData = async (authResponse: AuthResponse): Promise<void> => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ token }),
+        body: JSON.stringify({ accessToken }),
         credentials: 'include'
       });
       
@@ -297,7 +308,7 @@ const saveAuthData = async (authResponse: AuthResponse): Promise<void> => {
   }
   
   // 同时设置普通Cookie作为备份
-  setSecureCookie(AUTH_TOKEN_KEY, token, {
+  setSecureCookie(AUTH_TOKEN_KEY, accessToken, {
     maxAge: 60 * 60 * 24 * 7, // 7天
     sameSite: 'Lax'
   });
@@ -444,4 +455,67 @@ export const isAuthenticated = (): boolean => {
 /**
  * 清除认证状态
  */
-export const clearAuth = logout; 
+export const clearAuth = logout;
+
+/**
+ * 获取访问令牌
+ */
+export const getAccessToken = (): string | null => {
+  return getAuthToken();
+};
+
+/**
+ * 获取认证请求头
+ */
+export const getAuthHeaders = async (includeContentType = false): Promise<Record<string, string>> => {
+  const token = getAuthToken();
+  const headers: Record<string, string> = {};
+  
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  
+  if (includeContentType) {
+    headers['Content-Type'] = 'application/json';
+  }
+  
+  return headers;
+};
+
+/**
+ * 检查令牌是否即将过期（在5分钟内过期）
+ */
+export const isTokenExpiringSoon = (): boolean => {
+  const token = getAuthToken();
+  if (!token) return true;
+  
+  try {
+    const decoded = jwtDecode<JWTPayload>(token);
+    const now = Math.floor(Date.now() / 1000);
+    const timeUntilExpiry = decoded.exp - now;
+    
+    // 如果令牌在5分钟内过期，返回true
+    return timeUntilExpiry < 300;
+  } catch (error) {
+    console.error('解析令牌时出错:', error);
+    return true;
+  }
+};
+
+/**
+ * 检查令牌是否已过期
+ */
+export const isTokenExpired = (): boolean => {
+  const token = getAuthToken();
+  if (!token) return true;
+  
+  try {
+    const decoded = jwtDecode<JWTPayload>(token);
+    const now = Math.floor(Date.now() / 1000);
+    
+    return decoded.exp <= now;
+  } catch (error) {
+    console.error('解析令牌时出错:', error);
+    return true;
+  }
+}; 

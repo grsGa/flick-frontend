@@ -7,7 +7,7 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: 'trusted-domain.com',
+        hostname: 'cdn.your-production-domain.com',
       },
       {
         protocol: 'http',

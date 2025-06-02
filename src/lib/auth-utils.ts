@@ -24,7 +24,15 @@ export const setSecureCookie = (name: string, value: string, options: CookieOpti
     const maxAge = options.maxAge || 60 * 60 * 24 * 7;
     
     // 构建Cookie字符串
-    let cookieStr = `${name}=${encodeURIComponent(value)}; path=${options.path || '/'}; max-age=${maxAge}`;
+    let cookieStr = `${name}=${encodeURIComponent(value)}; path=${options.path ?? '/'}; max-age=${maxAge}`;
+    
+    // 处理explicit expires选项
+    if (options.expires) {
+      const exp = typeof options.expires === 'string'
+        ? options.expires
+        : options.expires.toUTCString();
+      cookieStr += `; Expires=${exp}`;
+    }
     
     // 添加可选的Cookie属性
     if (options.sameSite) {
@@ -38,7 +46,8 @@ export const setSecureCookie = (name: string, value: string, options: CookieOpti
       cookieStr += '; Secure';
     }
 
-    // 不再添加HttpOnly属性，确保JavaScript可以访问Cookie
+    // 注意：在客户端JavaScript中无法设置HttpOnly属性
+    // HttpOnly只能在服务端设置，因此从CookieOptions接口中移除了此选项
     
     // 设置Cookie
     document.cookie = cookieStr;
@@ -93,7 +102,7 @@ export const syncAuthStorages = (): void => {
     if (localToken && !cookieToken) {
       setSecureCookie(AUTH_TOKEN_KEY, localToken, {
         maxAge: 60 * 60 * 24 * 7, // 7天
-        sameSite: 'Strict'
+        sameSite: 'Lax'
       });
       console.log('已将localStorage中的token同步到cookie');
     } 
@@ -106,7 +115,7 @@ export const syncAuthStorages = (): void => {
     else if (localToken && cookieToken && localToken !== cookieToken) {
       setSecureCookie(AUTH_TOKEN_KEY, localToken, {
         maxAge: 60 * 60 * 24 * 7,
-        sameSite: 'Strict'
+        sameSite: 'Lax'
       });
       console.log('发现token不一致，已使用localStorage中的token更新cookie');
     }
@@ -122,5 +131,6 @@ export interface CookieOptions {
   expires?: Date | string;
   sameSite?: 'Strict' | 'Lax' | 'None';
   secure?: boolean;
-  httpOnly?: boolean;
-} 
+  // 注意：移除了httpOnly选项，因为在客户端JavaScript中无法设置此属性
+  // httpOnly只能在服务端通过Set-Cookie响应头设置
+}

@@ -1,122 +1,108 @@
 'use client';
 
-import { useState, useEffect, memo } from 'react';
+import { useState, useEffect, memo, useCallback } from 'react';
 import { SidebarLayout } from '@/components/layout/sidebar-layout';
-import { useAuth, withAuth } from '@/lib/auth-context';
+import { withAuth } from '@/lib/auth-context';
 import { fixMinioUrl } from '@/lib/utils';
 import { PullToRefresh } from '@/components/ui/pull-to-refresh';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
-import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { CalendarIcon, MoreHorizontal } from 'lucide-react';
-import { FixedEditButton } from '@/components/profile/fixed-edit-button';
+import { Avatar, AvatarImage } from '@/components/ui/avatar';
+import { CalendarIcon, MessageSquare, FileText, Image as ImageIcon, Heart, MoreHorizontal, MapPin, Globe } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import Image from 'next/image';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
-import { PostCard } from '@/components/ui/post-card';
+import { usePathname, useRouter } from 'next/navigation';
+import { PostItem } from '@/components/PostItem';
 import { useQuery } from '@apollo/client';
-import { GET_ME, GET_USER_FOLLOW_STATS, GET_USER_POSTS, GET_LIKED_POSTS } from '@/graphql';
+import { UserQueries, ContentQueries } from '@/graphql';
+import { useEnsureToken } from '@/lib/token-passthrough';
+import { Post } from '@/graphql/types';
+import { Separator } from '@/components/ui/separator';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { ProfileEditor } from '@/components/profile/profile-editor';
 
 // 创建记忆化的头像组件
 const MemoizedAvatar = memo(({ src, alt, className }: { src?: string, alt: string, className?: string }) => {
-  const firstLetter = alt[0]?.toUpperCase() || '用户';
-  
   return (
     <Avatar className={className || "h-10 w-10"}>
-      <AvatarImage src={src ? fixMinioUrl(src) : undefined} alt={alt} className="object-cover" />
-      <AvatarFallback className="text-3xl bg-gradient-to-br from-blue-400 to-purple-500 text-white">
-        {firstLetter}
-      </AvatarFallback>
+      <AvatarImage src={src || "/images/placeholder.png"} alt={alt} className="object-cover" />
     </Avatar>
   );
 });
 MemoizedAvatar.displayName = 'MemoizedAvatar';
 
-// 用户类型定义
-type User = {
-  id: string;
-  username: string;
-  displayName: string;
-  bio: string;
-  avatarUrl: string;
-  coverImageUrl?: string;
-  location?: string;
-  website?: string;
-  verifiedEmail?: boolean;
-  createdAt: string;
-  followers: number;
-  following: number;
+// 网站URL安全处理函数
+const sanitizeWebsiteUrl = (url: string): string => {
+  if (!url) return '';
+  
+  // 删除所有 javascript: 或 data: 协议
+  if (url.match(/^(javascript|data):/i)) {
+    return '';
+  }
+  
+  // 确保 URL 具有 http/https 协议
+  if (!url.match(/^https?:\/\//i)) {
+    return `https://${url}`;
+  }
+  
+  try {
+    // 验证 URL 格式
+    new URL(url);
+    return url;
+  } catch {
+    return '';
+  }
 };
-
-// 帖子类型定义
-type Post = {
-  id: string;
-  caption: string;
-  mediaUrls: string[];
-  createdAt: string;
-  likes: number;
-  comments: number;
-  isLiked: boolean;
-  isSaved: boolean;
-  permalinkId: string;
-  user: {
-    id: string;
-    username: string;
-    displayName: string;
-    avatarUrl: string;
-  };
-};
-
-// 修复Card引起的lint错误
-function isMediaPost(post: Post): boolean {
-  return post.mediaUrls && post.mediaUrls.length > 0;
-}
 
 function ProfilePage() {
-  const { isAuthenticated } = useAuth();
+  // 确保令牌在cookie中正确设置
+  useEnsureToken();
+
   const { toast } = useToast();
   const pathname = usePathname();
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState('posts');
-  const [previewPost, setPreviewPost] = useState<Post | null>(null);
-  const [previewOpen, setPreviewOpen] = useState(false);
-  const [currentMediaIndex, setCurrentMediaIndex] = useState(0);
 
   // 使用Apollo Client查询用户数据
-  const { data: userData, loading: userLoading, refetch: refetchUser } = useQuery(GET_ME);
-
-  // 查询用户关注统计
-  const { data: followStatsData, loading: followStatsLoading, refetch: refetchFollowStats } = 
-    useQuery(GET_USER_FOLLOW_STATS, {
-      variables: { userId: userData?.me?.id },
-      skip: !userData?.me?.id,
-    });
+  const { data: userData, loading: userLoading, refetch: refetchUser } = useQuery(UserQueries.GET_ME, {
+    fetchPolicy: 'network-only'
+  });
 
   // 查询用户帖子
   const { data: postsData, loading: postsLoading, refetch: refetchPosts } = 
-    useQuery(GET_USER_POSTS, {
-      variables: { userId: userData?.me?.id, limit: 20 },
-      skip: !userData?.me?.id,
+    useQuery(ContentQueries.GET_USER_POSTS, {
+      variables: { 
+        username: userData?.me?.username,
+        page: { page: 1, limit: 20 }
+      },
+      skip: !userData?.me?.username,
     });
 
   // 查询用户点赞的帖子
   const { data: likedPostsData, loading: likesLoading, refetch: refetchLikedPosts } = 
-    useQuery(GET_LIKED_POSTS, {
-      variables: { userId: userData?.me?.id, limit: 20 },
-      skip: !userData?.me?.id || activeTab !== 'likes',
+    useQuery(ContentQueries.GET_LIKED_POSTS, {
+      variables: { page: { page: 1, limit: 20 } },
+      skip: activeTab !== 'likes',
     });
 
-  // 处理取消点赞
-  const handleUnlike = (postId: string) => {
-    // 重新获取点赞帖子数据
-    refetchLikedPosts();
+  // 刷新帖子数据
+  const handlePostUpdate = async (): Promise<void> => {
+    // 重新获取帖子数据
+    if (activeTab === 'likes') {
+      refetchLikedPosts();
+    } else {
+      refetchPosts();
+    }
   };
 
   // 创建一个函数来根据路径设置激活标签
-  const setActiveTabFromPath = (path: string) => {
+  const setActiveTabFromPath = (path: string): void => {
     if (path === '/profile/replies') {
       setActiveTab('replies');
     } else if (path === '/profile/media') {
@@ -128,35 +114,31 @@ function ProfilePage() {
     }
   };
 
+  // 稳定事件处理程序参考
+  const handlePopState = useCallback((): void => {
+    const currentPath = window.location.pathname;
+    setActiveTabFromPath(currentPath);
+  }, []);
+
   // 根据URL设置激活的标签，并监听pathname变化
   useEffect(() => {
-    if (pathname) {
-      setActiveTabFromPath(pathname);
-    }
+    setActiveTabFromPath(pathname);
 
-    // 添加popstate事件监听器，用于处理浏览器前进/后退按钮
     window.addEventListener('popstate', handlePopState);
     return () => {
       window.removeEventListener('popstate', handlePopState);
     };
-  }, [pathname]);
+  }, [pathname, handlePopState]);
 
   // 监听活动标签变化，加载相应数据
   useEffect(() => {
     if (activeTab === 'likes' && userData?.me?.id) {
       refetchLikedPosts();
     }
-  }, [activeTab, userData?.me?.id]);
-
-  // 处理浏览器导航事件
-  const handlePopState = () => {
-    if (pathname) {
-      setActiveTabFromPath(pathname);
-    }
-  };
+  }, [activeTab, userData?.me?.id, refetchLikedPosts]);
 
   // 处理标签切换
-  const handleTabChange = (value: string) => {
+  const handleTabChange = (value: string): void => {
     setActiveTab(value);
     
     let newPath = '/profile';
@@ -170,61 +152,15 @@ function ProfilePage() {
       newPath = '/profile/likes';
     }
     
-    // 使用window.history.pushState更新URL
-    window.history.pushState(null, '', newPath);
-  };
-
-  // 生成帖子状态URL
-  const formatStatusUrl = (post: Post, photoIndex: number = 1) => {
-    return `/${post.user.username}/status/${post.permalinkId}/photo/${photoIndex}`;
-  };
-
-  // 打开媒体预览
-  const openMediaPreview = (post: Post, initialIndex: number = 0) => {
-    setPreviewPost(post);
-    setCurrentMediaIndex(initialIndex);
-    setPreviewOpen(true);
-  };
-
-  // 下一张媒体
-  const nextMedia = () => {
-    if (previewPost && previewPost.mediaUrls.length > 0) {
-      const newIndex = (currentMediaIndex + 1) % previewPost.mediaUrls.length;
-      setCurrentMediaIndex(newIndex);
-      // 更新浏览器URL而不导航
-      const url = formatStatusUrl(previewPost, newIndex + 1);
-      window.history.replaceState(null, '', url);
-    }
-  };
-
-  // 上一张媒体
-  const prevMedia = () => {
-    if (previewPost && previewPost.mediaUrls.length > 0) {
-      const newIndex = (currentMediaIndex - 1 + previewPost.mediaUrls.length) % previewPost.mediaUrls.length;
-      setCurrentMediaIndex(newIndex);
-      // 更新浏览器URL而不导航
-      const url = formatStatusUrl(previewPost, newIndex + 1);
-      window.history.replaceState(null, '', url);
-    }
-  };
-
-  // 处理对话框关闭
-  const handleDialogClose = (open: boolean) => {
-    if (!open) {
-      setPreviewOpen(false);
-      // 恢复之前的URL
-      if (pathname) {
-        window.history.pushState(null, '', pathname);
-      }
-    }
+    // 使用Next.js router更新URL
+    router.push(newPath, { scroll: false });
   };
 
   // 刷新所有数据
-  const handleRefresh = async () => {
+  const handleRefresh = async (): Promise<void> => {
     try {
       await Promise.all([
         refetchUser(),
-        refetchFollowStats(),
         refetchPosts(),
         activeTab === 'likes' ? refetchLikedPosts() : Promise.resolve()
       ]);
@@ -248,19 +184,7 @@ function ProfilePage() {
   // 格式化日期
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long' });
-  };
-
-  // 处理删除帖子
-  const handleDeletePost = (postId: string) => {
-    // 更新帖子列表
-    refetchPosts();
-    
-    toast({
-      title: "已删除",
-      description: "帖子已成功删除",
-      duration: 2000,
-    });
+    return `${date.getFullYear()}年${date.getMonth() + 1}月 加入`;
   };
 
   // 渲染帖子标签内容
@@ -286,12 +210,11 @@ function ProfilePage() {
     
     return (
       <div className="space-y-4 pb-10">
-        {posts.map((post) => (
-          <PostCard 
+        {posts.map((post: Post) => (
+          <PostItem 
             key={post.id}
             post={post}
-            onOpenMediaPreview={(index) => openMediaPreview(post, index)}
-            onDelete={handleDeletePost}
+            onLike={handlePostUpdate}
           />
         ))}
       </div>
@@ -321,12 +244,11 @@ function ProfilePage() {
     
     return (
       <div className="space-y-4 pb-10">
-        {likedPosts.map((post) => (
-          <PostCard 
+        {likedPosts.map((post: Post) => (
+          <PostItem 
             key={post.id}
             post={post}
-            onOpenMediaPreview={(index) => openMediaPreview(post, index)}
-            onUnlike={() => handleUnlike(post.id)}
+            onLike={handlePostUpdate}
           />
         ))}
       </div>
@@ -336,7 +258,7 @@ function ProfilePage() {
   // 正在加载时显示加载界面
   if (userLoading) {
     return (
-      <SidebarLayout activePath="profile">
+      <SidebarLayout>
         <div className="py-10 flex justify-center">
           <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
         </div>
@@ -349,7 +271,7 @@ function ProfilePage() {
   
   if (!user) {
     return (
-      <SidebarLayout activePath="profile">
+      <SidebarLayout>
         <div className="text-center py-20">
           <p className="text-xl font-medium text-gray-600 dark:text-gray-400">无法加载用户资料</p>
           <p className="text-gray-500 dark:text-gray-500 mt-2">请检查网络连接并重试</p>
@@ -359,12 +281,35 @@ function ProfilePage() {
     );
   }
 
+  // 处理个人资料更新
+  const handleProfileUpdated = () => {
+    refetchUser();
+  };
+
   return (
-    <SidebarLayout activePath="profile">
+    <SidebarLayout>
+      {/* 顶部标题栏 */}
+      <div className="sticky top-0 z-10 flex justify-between items-center px-4 py-3 bg-white dark:bg-gray-950 border-b border-gray-200 dark:border-gray-800">
+        <h1 className="text-lg font-bold">个人资料</h1>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full">
+              <MoreHorizontal className="h-5 w-5" />
+              <span className="sr-only">更多选项</span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem>
+              分享个人资料
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+      
       <PullToRefresh onRefresh={handleRefresh}>
         <div className="mb-20">
           {/* 封面图片 */}
-          <div className="relative h-48 sm:h-64 w-full bg-gray-100 dark:bg-gray-900">
+          <div className="relative h-48 sm:h-64 w-full bg-gradient-to-b from-black to-white">
             {user.coverImageUrl && (
               <Image 
                 src={fixMinioUrl(user.coverImageUrl)} 
@@ -378,145 +323,148 @@ function ProfilePage() {
           </div>
           
           {/* 用户资料 */}
-          <div className="px-4 py-3 relative">
-            <div className="flex justify-between items-start relative">
-              <div className="absolute -top-16 border-4 border-white dark:border-black rounded-full">
-                <MemoizedAvatar 
-                  src={user.avatarUrl} 
-                  alt={user.displayName || user.username} 
-                  className="h-24 w-24 sm:h-32 sm:w-32"
-                />
-              </div>
-              
-              <div className="ml-auto">
-                <FixedEditButton />
-              </div>
+          <div className="px-4 pb-3 relative">
+            {/* 用户头像 - 确保一半在封面图内，一半在封面图外 */}
+            <div className="absolute -top-[64px] left-4 border-4 border-white dark:border-gray-900 rounded-full shadow-md">
+              <MemoizedAvatar 
+                src={user.avatarUrl} 
+                alt={user.displayName || user.username} 
+                className="h-32 w-32"
+              />
             </div>
             
-            <div className="mt-20 sm:mt-16">
-              <div className="flex flex-col">
+            {/* 编辑资料按钮 - 确保一半在封面图内，一半在封面图外 */}
+            <div className="absolute -top-[24px] right-4">
+              <ProfileEditor 
+                user={user} 
+                onProfileUpdated={handleProfileUpdated}
+              />
+            </div>
+            
+            {/* 用户名和标识 - 移到头像右侧，在封面图和内容区交界处 */}
+            <div className="flex items-center ml-40 mt-2">
+              <div>
                 <h1 className="text-2xl font-bold truncate">{user.displayName || user.username}</h1>
                 <p className="text-gray-500 dark:text-gray-400 text-sm">@{user.username}</p>
               </div>
-              
+            </div>
+            
+            <div className="mt-10">
               {user.bio && (
-                <p className="mt-3 mb-2 whitespace-pre-line text-sm">{user.bio}</p>
+                <p className="mb-3 whitespace-pre-line text-sm">{user.bio}</p>
               )}
               
-              <div className="flex items-center mt-2 text-gray-500 dark:text-gray-400 text-sm">
-                <CalendarIcon className="h-4 w-4 mr-1" />
-                <span>加入于 {formatDate(user.createdAt)}</span>
+              {/* 添加位置和网站信息 */}
+              <div className="flex flex-wrap gap-x-4 gap-y-2 mb-3 text-sm text-gray-500 dark:text-gray-400">
+                {user.location && (
+                  <div className="flex items-center">
+                    <MapPin size={16} className="mr-1.5" />
+                    <span>{user.location}</span>
+                  </div>
+                )}
+                
+                {user.website && (
+                  <div className="flex items-center">
+                    <Globe size={16} className="mr-1.5" />
+                    <a 
+                      href={sanitizeWebsiteUrl(user.website)} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-blue-500 hover:underline"
+                    >
+                      {user.website.replace(/^https?:\/\//, '')}
+                    </a>
+                  </div>
+                )}
               </div>
               
-              <div className="flex mt-2 space-x-6 text-sm">
-                <Link href="/profile/following" className="hover:underline">
-                  <span className="font-bold">{followStatsData?.userFollowStats?.followingCount || 0}</span>
-                  <span className="text-gray-500 dark:text-gray-400 ml-1">正在关注</span>
-                </Link>
-                <Link href="/profile/followers" className="hover:underline">
-                  <span className="font-bold">{followStatsData?.userFollowStats?.followersCount || 0}</span>
-                  <span className="text-gray-500 dark:text-gray-400 ml-1">粉丝</span>
-                </Link>
+              {/* 修改加入日期和关注信息的显示 */}
+              <div className="flex items-center text-sm">
+                <div className="flex items-center text-gray-500 dark:text-gray-400">
+                  <CalendarIcon className="h-4 w-4 mr-1.5" />
+                  <span>{formatDate(user.createdAt)}</span>
+                </div>
+                
+                {/* 竖线分隔符 */}
+                <div className="mx-3 h-4 w-px bg-gray-300 dark:bg-gray-700"></div>
+                
+                {/* 关注和粉丝信息 */}
+                <div className="flex space-x-4">
+                  <Link href="/profile/following" className="text-gray-600 dark:text-gray-300 hover:underline">
+                    <span className="font-bold">{user.followingCount || 0}</span>
+                    <span className="text-gray-500 dark:text-gray-400 ml-1">正在关注</span>
+                  </Link>
+                  <Link href="/profile/followers" className="text-gray-600 dark:text-gray-300 hover:underline">
+                    <span className="font-bold">{user.followersCount || 0}</span>
+                    <span className="text-gray-500 dark:text-gray-400 ml-1">粉丝</span>
+                  </Link>
+                </div>
               </div>
             </div>
           </div>
           
+          {/* 分隔线 - 分隔用户资料和标签内容 */}
+          <Separator className="my-4" />
+          
           {/* 标签页 */}
           <Tabs value={activeTab} onValueChange={handleTabChange}>
-            <div className="border-b border-gray-200 dark:border-gray-800">
-              <TabsList className="w-full justify-start h-12 p-0 bg-transparent">
+            <div className="border-b-0">
+              <TabsList className="mx-auto max-w-md flex justify-center h-12 p-0 bg-transparent">
                 <TabsTrigger 
                   value="posts"
-                  className="data-[state=active]:border-b-2 data-[state=active]:border-blue-500 data-[state=active]:shadow-none focus:outline-none rounded-none"
+                  className="data-[state=active]:border-b-2 data-[state=active]:border-gray-900 dark:data-[state=active]:border-gray-100 data-[state=active]:shadow-none focus:outline-none rounded-none flex items-center gap-1.5"
                 >
-                  帖子
+                  <FileText size={18} />
+                  <span>帖子</span>
                 </TabsTrigger>
                 <TabsTrigger 
                   value="replies"
-                  className="data-[state=active]:border-b-2 data-[state=active]:border-blue-500 data-[state=active]:shadow-none focus:outline-none rounded-none"
+                  className="data-[state=active]:border-b-2 data-[state=active]:border-gray-900 dark:data-[state=active]:border-gray-100 data-[state=active]:shadow-none focus:outline-none rounded-none flex items-center gap-1.5"
                 >
-                  回复
+                  <MessageSquare size={18} />
+                  <span>回复</span>
                 </TabsTrigger>
                 <TabsTrigger 
                   value="media"
-                  className="data-[state=active]:border-b-2 data-[state=active]:border-blue-500 data-[state=active]:shadow-none focus:outline-none rounded-none"
+                  className="data-[state=active]:border-b-2 data-[state=active]:border-gray-900 dark:data-[state=active]:border-gray-100 data-[state=active]:shadow-none focus:outline-none rounded-none flex items-center gap-1.5"
                 >
-                  媒体
+                  <ImageIcon size={18} />
+                  <span>媒体</span>
                 </TabsTrigger>
                 <TabsTrigger 
                   value="likes"
-                  className="data-[state=active]:border-b-2 data-[state=active]:border-blue-500 data-[state=active]:shadow-none focus:outline-none rounded-none"
+                  className="data-[state=active]:border-b-2 data-[state=active]:border-gray-900 dark:data-[state=active]:border-gray-100 data-[state=active]:shadow-none focus:outline-none rounded-none flex items-center gap-1.5"
                 >
-                  喜欢
+                  <Heart size={18} />
+                  <span>喜欢</span>
                 </TabsTrigger>
               </TabsList>
             </div>
             
-            <TabsContent value="posts" className="p-0 pt-2">
+            <TabsContent value="posts" className="p-0 pt-4">
               {renderPostsTab()}
             </TabsContent>
             
-            <TabsContent value="replies" className="p-0 pt-2">
+            <TabsContent value="replies" className="p-0 pt-4">
               <div className="text-center py-20">
                 <p className="text-xl font-medium text-gray-600 dark:text-gray-400">暂无回复</p>
                 <p className="text-gray-500 dark:text-gray-500 mt-2">你的回复将会显示在这里</p>
               </div>
             </TabsContent>
             
-            <TabsContent value="media" className="p-0 pt-2">
+            <TabsContent value="media" className="p-0 pt-4">
               <div className="text-center py-20">
                 <p className="text-xl font-medium text-gray-600 dark:text-gray-400">暂无媒体</p>
                 <p className="text-gray-500 dark:text-gray-500 mt-2">包含图片或视频的帖子将会显示在这里</p>
               </div>
             </TabsContent>
             
-            <TabsContent value="likes" className="p-0 pt-2">
+            <TabsContent value="likes" className="p-0 pt-4">
               {renderLikedPosts()}
             </TabsContent>
           </Tabs>
         </div>
       </PullToRefresh>
-      
-      {/* 媒体预览对话框 */}
-      <Dialog open={previewOpen} onOpenChange={handleDialogClose}>
-        <DialogContent className="p-0 max-w-4xl w-full bg-black">
-          {previewPost && (
-            <div className="relative">
-              <img 
-                src={fixMinioUrl(previewPost.mediaUrls[currentMediaIndex])}
-                alt="媒体预览"
-                className="w-full h-auto max-h-[80vh]"
-              />
-              
-              {previewPost.mediaUrls.length > 1 && (
-                <>
-                  <button
-                    onClick={prevMedia}
-                    className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-black/50 rounded-full p-2"
-                  >
-                    <span className="text-white">←</span>
-                  </button>
-                  <button
-                    onClick={nextMedia}
-                    className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-black/50 rounded-full p-2"
-                  >
-                    <span className="text-white">→</span>
-                  </button>
-                  
-                  <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-1">
-                    {previewPost.mediaUrls.map((_, index) => (
-                      <div 
-                        key={index}
-                        className={`w-2 h-2 rounded-full ${index === currentMediaIndex ? 'bg-white' : 'bg-white/50'}`}
-                      />
-                    ))}
-                  </div>
-                </>
-              )}
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
     </SidebarLayout>
   );
 }

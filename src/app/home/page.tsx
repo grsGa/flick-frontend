@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useQuery } from '@apollo/client';
-import { UserQueries } from '@/graphql';
+import { ContentQueries } from '@/graphql';
 import { Post } from '@/graphql/types';
 import { SidebarLayout } from '@/components/layout/sidebar-layout';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
@@ -14,6 +14,7 @@ import { PullToRefresh } from '@/components/ui/pull-to-refresh';
 import { HomeIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { usePostDialog } from '@/components/providers/post-dialog-provider';
+import { handleGoogleAuthCallback } from '@/lib/google-auth';
 
 function HomePage() {
   const { user } = useAuth();
@@ -23,31 +24,58 @@ function HomePage() {
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const { openPostDialog } = usePostDialog();
   
-  // 使用token确保hook
+  // 确保认证token正确同步
   useEnsureToken();
   
-  // 确保用户已认证，这是安全保障措施
   useEffect(() => {
-    console.log('[Home页] 认证状态检查:', { isAuthenticated: !!user });
-    
-    // 检查cookie中是否存在token
-    const hasCookieToken = document.cookie
-      .split('; ')
-      .some(row => row.startsWith('auth_token='));
-    
-    console.log('[Home页] Cookie token检查:', { hasCookieToken });
-    
-    // 获取localStorage中的token
-    const localToken = localStorage.getItem('auth_token');
-    
-    if (localToken && !hasCookieToken) {
-      // 如果localStorage中有token但cookie中没有，则设置cookie
-      console.log('[Home页] 从localStorage同步token到cookie');
-      document.cookie = `auth_token=${localToken}; path=/; max-age=${60 * 60 * 24 * 7}`;
+    // 首先处理Google OAuth回调
+    const authResult = handleGoogleAuthCallback();
+    if (authResult) {
+      console.log('[Home页] Google认证成功，用户信息已保存:', authResult.user.username);
+      // 强制刷新页面以应用新的认证状态
+      window.location.reload();
+      return;
     }
+
+    // 检查和记录认证状态
+    const checkAuth = async () => {
+      const token = localStorage.getItem('auth_token');
+      const cookieToken = document.cookie
+        .split('; ')
+        .find(row => row.startsWith('auth_token='))
+        ?.split('=')[1];
+      
+      console.log('[Home页] 认证状态检查:', { 
+        isAuthenticated: !!user,
+        hasLocalToken: !!token,
+        hasCookieToken: !!cookieToken,
+        tokenSync: token === cookieToken
+      });
+      
+      // 如果存在不一致，尝试同步
+      if (token && !cookieToken) {
+        console.log('[Home页] token不一致，尝试同步...');
+        document.cookie = `auth_token=${token}; path=/; max-age=${60 * 60 * 24 * 7}`;
+        
+        // 通过API设置cookie
+        try {
+          await fetch('/api/set-auth-cookie', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ accessToken: token }),
+            credentials: 'include'
+          });
+          console.log('[Home页] 通过API同步token成功');
+        } catch (err) {
+          console.error('[Home页] 通过API同步token失败:', err);
+        }
+      }
+    };
+    
+    checkAuth();
   }, [user]);
   
-  const { data, loading, error, fetchMore } = useQuery(UserQueries.GET_FEED, {
+  const { data, error, loading, fetchMore } = useQuery(ContentQueries.GET_FEED, {
     variables: { page: createPageInput(page, 10) },
     fetchPolicy: 'network-only',
   });

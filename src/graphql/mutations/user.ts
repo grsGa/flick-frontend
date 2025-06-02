@@ -5,7 +5,7 @@ import { USER_FIELDS } from '../queries/user';
 export const LOGIN = gql`
   mutation Login($input: LoginInput!) {
     login(input: $input) {
-      token
+      accessToken
       refreshToken
       expiresAt
       user {
@@ -21,7 +21,7 @@ export const LOGIN = gql`
 export const REGISTER = gql`
   mutation Register($input: RegisterInput!) {
     register(input: $input) {
-      token
+      accessToken
       refreshToken
       expiresAt
       user {
@@ -35,9 +35,9 @@ export const REGISTER = gql`
 
 // 刷新令牌
 export const REFRESH_TOKEN = gql`
-  mutation RefreshToken($refreshToken: String!) {
-    refreshToken(refreshToken: $refreshToken) {
-      token
+  mutation RefreshToken($token: String!) {
+    refreshToken(token: $token) {
+      accessToken
       refreshToken
       expiresAt
       user {
@@ -182,4 +182,22 @@ export const UPDATE_USER_ROLES = gql`
       roles
     }
   }
+`;
+
+/**
+ * Google认证查询
+ */
+export const GOOGLE_AUTH_MUTATION = gql`
+  mutation GoogleAuth($input: GoogleAuthInput!) {
+    googleAuth(input: $input) {
+      accessToken
+      refreshToken
+      expiresAt
+      user {
+        ...UserFields
+        roles
+      }
+    }
+  }
+  ${USER_FIELDS}
 `; 

@@ -1,0 +1,11 @@
+# Common GraphQL types
+
+scalar Upload
+
+type Query {
+  health: String
+}
+
+type Mutation {
+  uploadMedia(file: Upload!): Media!
+}

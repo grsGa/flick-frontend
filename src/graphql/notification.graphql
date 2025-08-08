@@ -1,0 +1,39 @@
+# Notification related GraphQL types
+
+type Notification {
+  id: ID!
+  type: NotificationType!
+  actor: User!
+  entity: NotificationEntity!
+  read: Boolean!
+  createdAt: String!
+}
+
+enum NotificationType {
+  LIKE
+  COMMENT
+  FOLLOW
+  RETWEET
+  BOOKMARK
+}
+
+union NotificationEntity = Tweet | Comment | User
+
+type NotificationEdge {
+  node: Notification!
+  cursor: String!
+}
+
+type NotificationConnection {
+  edges: [NotificationEdge!]!
+  pageInfo: PageInfo!
+}
+
+type Query {
+  notifications(first: Int!, after: String): NotificationConnection
+}
+
+type Mutation {
+  markNotificationAsRead(id: ID!): Notification!
+  markAllNotificationsAsRead: Boolean!
+}

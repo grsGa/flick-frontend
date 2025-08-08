@@ -1,0 +1,77 @@
+# Content related GraphQL types
+
+type Tweet {
+  id: ID!
+  content: String!
+  author: User!
+  createdAt: String!
+  media: [Media!]!
+  interaction: Interaction!
+  comments(first: Int!, after: String): CommentConnection
+}
+
+type Comment {
+  id: ID!
+  content: String!
+  author: User!
+  createdAt: String!
+  interaction: Interaction!
+}
+
+input CreateTweetInput {
+  content: String!
+  mediaIds: [ID!]
+  replyTo: ID
+}
+
+input CreateCommentInput {
+  content: String!
+  tweetId: ID!
+}
+
+type Media {
+  id: ID!
+  url: String!
+  type: MediaType!
+}
+
+enum MediaType {
+  IMAGE
+  VIDEO
+}
+
+type PageInfo {
+  hasNextPage: Boolean!
+  endCursor: String
+}
+
+type TweetEdge {
+  node: Tweet!
+  cursor: String!
+}
+
+type TweetConnection {
+  edges: [TweetEdge!]!
+  pageInfo: PageInfo!
+}
+
+type CommentEdge {
+  node: Comment!
+  cursor: String!
+}
+
+type CommentConnection {
+  edges: [CommentEdge!]!
+  pageInfo: PageInfo!
+}
+
+type Query {
+  tweet(id: ID!): Tweet
+  userTweets(username: String!, first: Int!, after: String): TweetConnection
+  homeFeed(first: Int!, after: String): TweetConnection
+}
+
+type Mutation {
+  createTweet(input: CreateTweetInput!): Tweet!
+  createComment(input: CreateCommentInput!): Comment!
+}

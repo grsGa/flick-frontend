@@ -1,0 +1,51 @@
+# Message related GraphQL types
+
+type Conversation {
+  id: ID!
+  participants: [User!]!
+  lastMessage: Message
+  unreadCount: Int!
+  createdAt: String!
+}
+
+type Message {
+  id: ID!
+  conversationId: ID!
+  sender: User!
+  content: String!
+  media: Media
+  read: Boolean!
+  createdAt: String!
+}
+
+input CreateMessageInput {
+  conversationId: ID!
+  content: String!
+  mediaId: ID
+}
+
+input CreateConversationInput {
+  participantIds: [ID!]!
+}
+
+type MessageEdge {
+  node: Message!
+  cursor: String!
+}
+
+type MessageConnection {
+  edges: [MessageEdge!]!
+  pageInfo: PageInfo!
+}
+
+type Query {
+  conversations: [Conversation!]!
+  conversation(id: ID!): Conversation
+  messages(conversationId: ID!, first: Int!, after: String): MessageConnection
+}
+
+type Mutation {
+  createConversation(input: CreateConversationInput!): Conversation!
+  sendMessage(input: CreateMessageInput!): Message!
+  markMessageAsRead(messageId: ID!): Message!
+}

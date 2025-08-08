@@ -1,0 +1,51 @@
+# Search related GraphQL types
+
+type SearchResults {
+  tweets: TweetConnection
+  users: UserConnection
+  hashtags: HashtagConnection
+}
+
+type Hashtag {
+  id: ID!
+  name: String!
+  tweetCount: Int!
+}
+
+type UserConnection {
+  edges: [UserEdge!]!
+  pageInfo: PageInfo!
+}
+
+type UserEdge {
+  node: User!
+  cursor: String!
+}
+
+type HashtagConnection {
+  edges: [HashtagEdge!]!
+  pageInfo: PageInfo!
+}
+
+type HashtagEdge {
+  node: Hashtag!
+  cursor: String!
+}
+
+input SearchInput {
+  query: String!
+  types: [SearchType!]
+  first: Int
+  after: String
+}
+
+enum SearchType {
+  TWEET
+  USER
+  HASHTAG
+}
+
+type Query {
+  search(input: SearchInput!): SearchResults
+  trendingHashtags(first: Int!): [Hashtag!]!
+}

@@ -1,0 +1,21 @@
+# Recommendation related GraphQL types
+
+type Recommendation {
+  id: ID!
+  type: RecommendationType!
+  entity: RecommendationEntity!
+  score: Float!
+}
+
+enum RecommendationType {
+  USER
+  TWEET
+  HASHTAG
+}
+
+union RecommendationEntity = User | Tweet | Hashtag
+
+type Query {
+  recommendedUsers(first: Int!): [User!]!
+  recommendedTweets(first: Int!): TweetConnection
+}

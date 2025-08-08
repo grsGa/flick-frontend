@@ -1,0 +1,31 @@
+# Interaction related GraphQL types
+
+type Interaction {
+  isLiked: Boolean!
+  isBookmarked: Boolean!
+  isRetweeted: Boolean!
+  likeCount: Int!
+  commentCount: Int!
+  retweetCount: Int!
+}
+
+input LikeTweetInput {
+  tweetId: ID!
+}
+
+input BookmarkTweetInput {
+  tweetId: ID!
+}
+
+input RetweetInput {
+  tweetId: ID!
+}
+
+type Mutation {
+  likeTweet(input: LikeTweetInput!): Interaction!
+  unlikeTweet(input: LikeTweetInput!): Interaction!
+  bookmarkTweet(input: BookmarkTweetInput!): Interaction!
+  unbookmarkTweet(input: BookmarkTweetInput!): Interaction!
+  retweet(input: RetweetInput!): Interaction!
+  undoRetweet(input: RetweetInput!): Interaction!
+}

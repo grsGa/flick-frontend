@@ -1,0 +1,51 @@
+# GraphQL Schema
+
+type Query {
+  health: String
+  tweet(id: ID!): Tweet
+  userTweets(username: String!, first: Int!, after: String): TweetConnection
+  homeFeed(first: Int!, after: String): TweetConnection
+  notifications(first: Int!, after: String): NotificationConnection
+  conversations: [Conversation!]!
+  conversation(id: ID!): Conversation
+  messages(conversationId: ID!, first: Int!, after: String): MessageConnection
+  search(input: SearchInput!): SearchResults
+  trendingHashtags(first: Int!): [Hashtag!]!
+  recommendedUsers(first: Int!): [User!]!
+  recommendedTweets(first: Int!): TweetConnection
+}
+
+type Mutation {
+  # Auth mutations
+  login(input: LoginInput!): AuthPayload!
+  register(input: RegisterInput!): AuthPayload!
+  
+  # Content mutations
+  createTweet(input: CreateTweetInput!): Tweet!
+  createComment(input: CreateCommentInput!): Comment!
+  
+  # Interaction mutations
+  likeTweet(input: LikeTweetInput!): Interaction!
+  unlikeTweet(input: LikeTweetInput!): Interaction!
+  bookmarkTweet(input: BookmarkTweetInput!): Interaction!
+  unbookmarkTweet(input: BookmarkTweetInput!): Interaction!
+  retweet(input: RetweetInput!): Interaction!
+  undoRetweet(input: RetweetInput!): Interaction!
+  
+  # Notification mutations
+  markNotificationAsRead(id: ID!): Notification!
+  markAllNotificationsAsRead: Boolean!
+  
+  # Message mutations
+  createConversation(input: CreateConversationInput!): Conversation!
+  sendMessage(input: CreateMessageInput!): Message!
+  markMessageAsRead(messageId: ID!): Message!
+  
+  # Media mutations
+  uploadMedia(file: Upload!): Media!
+}
+
+schema {
+  query: Query
+  mutation: Mutation
+}

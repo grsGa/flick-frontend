@@ -1,0 +1,22 @@
+# User related GraphQL types
+
+type User {
+  id: ID!
+  username: String!
+  displayName: String
+  bio: String
+  avatarUrl: String
+  bannerUrl: String
+  followersCount: Int!
+  followingCount: Int!
+  isFollowing: Boolean
+  isVerified: Boolean
+  createdAt: String!
+}
+
+input UpdateProfileInput {
+  displayName: String
+  bio: String
+  avatarUrl: String
+  bannerUrl: String
+}

@@ -64,14 +64,3 @@ type CommentConnection {
   edges: [CommentEdge!]!
   pageInfo: PageInfo!
 }
-
-type Query {
-  tweet(id: ID!): Tweet
-  userTweets(username: String!, first: Int!, after: String): TweetConnection
-  homeFeed(first: Int!, after: String): TweetConnection
-}
-
-type Mutation {
-  createTweet(input: CreateTweetInput!): Tweet!
-  createComment(input: CreateCommentInput!): Comment!
-}

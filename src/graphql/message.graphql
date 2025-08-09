@@ -37,15 +37,3 @@ type MessageConnection {
   edges: [MessageEdge!]!
   pageInfo: PageInfo!
 }
-
-type Query {
-  conversations: [Conversation!]!
-  conversation(id: ID!): Conversation
-  messages(conversationId: ID!, first: Int!, after: String): MessageConnection
-}
-
-type Mutation {
-  createConversation(input: CreateConversationInput!): Conversation!
-  sendMessage(input: CreateMessageInput!): Message!
-  markMessageAsRead(messageId: ID!): Message!
-}

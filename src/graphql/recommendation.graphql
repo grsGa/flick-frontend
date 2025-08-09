@@ -14,8 +14,3 @@ enum RecommendationType {
 }
 
 union RecommendationEntity = User | Tweet | Hashtag
-
-type Query {
-  recommendedUsers(first: Int!): [User!]!
-  recommendedTweets(first: Int!): TweetConnection
-}

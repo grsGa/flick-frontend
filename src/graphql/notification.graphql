@@ -28,12 +28,3 @@ type NotificationConnection {
   edges: [NotificationEdge!]!
   pageInfo: PageInfo!
 }
-
-type Query {
-  notifications(first: Int!, after: String): NotificationConnection
-}
-
-type Mutation {
-  markNotificationAsRead(id: ID!): Notification!
-  markAllNotificationsAsRead: Boolean!
-}

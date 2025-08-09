@@ -44,8 +44,3 @@ enum SearchType {
   USER
   HASHTAG
 }
-
-type Query {
-  search(input: SearchInput!): SearchResults
-  trendingHashtags(first: Int!): [Hashtag!]!
-}

@@ -6,7 +6,8 @@ type AuthPayload {
 }
 
 input LoginInput {
-  username: String!
+  username: String
+  email: String
   password: String!
 }
 
@@ -16,9 +17,4 @@ input RegisterInput {
   password: String!
   displayName: String
   phone: String
-}
-
-type Mutation {
-  login(input: LoginInput!): AuthPayload!
-  register(input: RegisterInput!): AuthPayload!
 }

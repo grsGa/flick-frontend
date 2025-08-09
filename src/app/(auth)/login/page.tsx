@@ -7,8 +7,8 @@ import Link from 'next/link';
 import { useMutation, gql } from '@apollo/client';
 
 const LOGIN_MUTATION = gql`
-  mutation Login($identifier: String!, $password: String!) {
-    login(identifier: $identifier, password: $password) {
+  mutation Login($input: LoginInput!) {
+    login(input: $input) {
       token
       user {
         id
@@ -55,10 +55,16 @@ const LoginPage: React.FC = () => {
     setError('');
     
     try {
+      // Dynamically build the input object based on user input
+      const isEmail = username.includes('@');
+      const input = {
+        password,
+        ...(isEmail ? { email: username } : { username: username }),
+      };
+
       const { data } = await loginMutation({
         variables: {
-          identifier: username,
-          password,
+          input: input,
         },
       });
       

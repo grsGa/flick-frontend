@@ -46,12 +46,19 @@ const InfiniteScrollList: React.FC<InfiniteScrollListProps> = ({
       hasMore={hasMore}
       loader={<div className="flex justify-center p-4"><Spinner /></div>}
       endMessage={
-        <p style={{ textAlign: 'center' }} className="p-4 text-gray-500">
-          <b>Yay! You have seen it all</b>
-        </p>
+        items.length > 0 ? (
+          <p style={{ textAlign: 'center' }} className="p-4 text-gray-500">
+            <b>Yay! You have seen it all</b>
+          </p>
+        ) : null
       }
     >
       {items.map(item => renderItem(item))}
+      {items.length === 0 && !hasMore && (
+        <div className="p-8 text-center text-gray-500">
+          No content yet
+        </div>
+      )}
     </InfiniteScroll>
   );
 };

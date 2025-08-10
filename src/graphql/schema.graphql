@@ -16,6 +16,9 @@ type Query {
   recommendedTweets(first: Int!): TweetConnection
   followers(userId: ID!, first: Int!, after: String): UserConnection
   following(userId: ID!, first: Int!, after: String): UserConnection
+  userReplies(userId: ID!, first: Int!, after: String): TweetConnection
+  userMedia(userId: ID!, first: Int!, after: String): TweetConnection
+  userLikes(userId: ID!, first: Int!, after: String): TweetConnection
 }
 
 type Mutation {

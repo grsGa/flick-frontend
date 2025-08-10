@@ -169,3 +169,162 @@ export function useLikeTweet() {
     error,
   };
 }
+
+const USER_REPLIES_QUERY = gql`
+  query UserReplies($userId: ID!, $first: Int!, $after: String) {
+    userReplies(userId: $userId, first: $first, after: $after) {
+      edges {
+        node {
+          id
+          content
+          createdAt
+          author {
+            id
+            username
+            displayName
+            avatarUrl
+            isVerified
+          }
+          media {
+            id
+            url
+            type
+          }
+          interaction {
+            isLiked
+            isBookmarked
+            isRetweeted
+            likeCount
+            commentCount
+            retweetCount
+          }
+        }
+      }
+      pageInfo {
+        hasNextPage
+        endCursor
+      }
+    }
+  }
+`;
+
+export function useUserReplies(userId: string, first: number = 10) {
+  const { data, loading, error, fetchMore } = useQuery(USER_REPLIES_QUERY, {
+    variables: { userId, first },
+    skip: !userId,
+  });
+
+  return {
+    tweets: data?.userReplies?.edges?.map((edge: any) => edge.node) || [],
+    pageInfo: data?.userReplies?.pageInfo,
+    loading,
+    error,
+    fetchMore,
+  };
+}
+
+const USER_MEDIA_QUERY = gql`
+  query UserMedia($userId: ID!, $first: Int!, $after: String) {
+    userMedia(userId: $userId, first: $first, after: $after) {
+      edges {
+        node {
+          id
+          content
+          createdAt
+          author {
+            id
+            username
+            displayName
+            avatarUrl
+            isVerified
+          }
+          media {
+            id
+            url
+            type
+          }
+          interaction {
+            isLiked
+            isBookmarked
+            isRetweeted
+            likeCount
+            commentCount
+            retweetCount
+          }
+        }
+      }
+      pageInfo {
+        hasNextPage
+        endCursor
+      }
+    }
+  }
+`;
+
+export function useUserMedia(userId: string, first: number = 10) {
+  const { data, loading, error, fetchMore } = useQuery(USER_MEDIA_QUERY, {
+    variables: { userId, first },
+    skip: !userId,
+  });
+
+  return {
+    tweets: data?.userMedia?.edges?.map((edge: any) => edge.node) || [],
+    pageInfo: data?.userMedia?.pageInfo,
+    loading,
+    error,
+    fetchMore,
+  };
+}
+
+const USER_LIKES_QUERY = gql`
+  query UserLikes($userId: ID!, $first: Int!, $after: String) {
+    userLikes(userId: $userId, first: $first, after: $after) {
+      edges {
+        node {
+          id
+          content
+          createdAt
+          author {
+            id
+            username
+            displayName
+            avatarUrl
+            isVerified
+          }
+          media {
+            id
+            url
+            type
+          }
+          interaction {
+            isLiked
+            isBookmarked
+            isRetweeted
+            likeCount
+            commentCount
+            retweetCount
+          }
+        }
+      }
+      pageInfo {
+        hasNextPage
+        endCursor
+      }
+    }
+  }
+`;
+
+export function useUserLikes(userId: string, first: number = 10) {
+  const { data, loading, error, fetchMore } = useQuery(USER_LIKES_QUERY, {
+    variables: { userId, first },
+    skip: !userId,
+  });
+
+  return {
+    tweets: data?.userLikes?.edges?.map((edge: any) => edge.node) || [],
+    pageInfo: data?.userLikes?.pageInfo,
+    loading,
+    error,
+    fetchMore,
+  };
+}

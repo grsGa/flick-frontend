@@ -89,7 +89,9 @@ const Sidebar: React.FC = () => {
           {navItems.map((item) => {
             // 特殊处理个人资料项
             const href = item.label === '个人资料' ? profileHref : item.href;
-            const isActive = pathname === href;
+            const isActive = item.label === '个人资料' 
+              ? pathname.startsWith(href) 
+              : pathname === href;
             
             return (
               <li key={item.label}>

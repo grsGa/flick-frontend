@@ -4,7 +4,8 @@ import client from '@/lib/apollo-client';
 import { gql } from '@apollo/client';
 import { User, PageInfo } from '@/graphql/types';
 import FollowersClient from '@/components/profile/FollowersClient';
-import ProfileTabs from '@/components/profile/ProfileTabs';
+import FollowTabs from '@/components/profile/FollowTabs';
+import BackButton from '@/components/core/BackButton';
 
 const GET_USER_AND_FOLLOWERS = gql`
   query GetUserAndFollowers($username: String!, $first: Int!, $after: String) {
@@ -93,8 +94,9 @@ async function getFollowersPageData(username: string) {
   }
 }
 
-export default async function FollowersPage({ params }: { params: { username: string } }) {
-  const data = await getFollowersPageData(params.username);
+export default async function FollowersPage({ params }: { params: Promise<{ username: string }> }) {
+  const { username } = await params;
+  const data = await getFollowersPageData(username);
 
   if (!data) {
     notFound();
@@ -103,13 +105,10 @@ export default async function FollowersPage({ params }: { params: { username: st
   const { user, followers, pageInfo } = data;
 
   return (
-    <div>
-      <ProfileTabs username={user.username} />
-      <FollowersClient
-        userId={user.id}
-        initialFollowers={followers}
-        initialPageInfo={pageInfo}
-      />
-    </div>
+    <FollowersClient
+      userId={user.id}
+      initialFollowers={followers}
+      initialPageInfo={pageInfo}
+    />
   );
 }

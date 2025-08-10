@@ -14,6 +14,8 @@ type Query {
   trendingHashtags(first: Int!): [Hashtag!]!
   recommendedUsers(first: Int!): [User!]!
   recommendedTweets(first: Int!): TweetConnection
+  followers(userId: ID!, first: Int!, after: String): UserConnection
+  following(userId: ID!, first: Int!, after: String): UserConnection
 }
 
 type Mutation {

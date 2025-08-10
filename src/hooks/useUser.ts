@@ -93,3 +93,75 @@ export function useRecommendedUsers(first: number = 5) {
     error,
   };
 }
+
+const FOLLOWERS_QUERY = gql`
+  query Followers($userId: ID!, $first: Int!, $after: String) {
+    followers(userId: $userId, first: $first, after: $after) {
+      edges {
+        node {
+          id
+          username
+          displayName
+          bio
+          avatarUrl
+          isFollowing
+        }
+      }
+      pageInfo {
+        hasNextPage
+        endCursor
+      }
+    }
+  }
+`;
+
+export function useFollowers(userId: string, first: number = 10) {
+  const { data, loading, error, fetchMore } = useQuery(FOLLOWERS_QUERY, {
+    variables: { userId, first },
+    skip: !userId,
+  });
+
+  return {
+    followers: data?.followers?.edges?.map((edge: any) => edge.node) || [],
+    pageInfo: data?.followers?.pageInfo,
+    loading,
+    error,
+    fetchMore,
+  };
+}
+
+const FOLLOWING_QUERY = gql`
+  query Following($userId: ID!, $first: Int!, $after: String) {
+    following(userId: $userId, first: $first, after: $after) {
+      edges {
+        node {
+          id
+          username
+          displayName
+          bio
+          avatarUrl
+          isFollowing
+        }
+      }
+      pageInfo {
+        hasNextPage
+        endCursor
+      }
+    }
+  }
+`;
+
+export function useFollowing(userId: string, first: number = 10) {
+  const { data, loading, error, fetchMore } = useQuery(FOLLOWING_QUERY, {
+    variables: { userId, first },
+    skip: !userId,
+  });
+
+  return {
+    following: data?.following?.edges?.map((edge: any) => edge.node) || [],
+    pageInfo: data?.following?.pageInfo,
+    loading,
+    error,
+    fetchMore,
+  };
+}

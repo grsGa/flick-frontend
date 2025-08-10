@@ -36,7 +36,7 @@ const TopBar: React.FC<TopBarProps> = ({ title }) => {
         {/* 用户头像 */}
         {user && (
           <div 
-            onClick={() => router.push(`/${user.username}`)}
+            onClick={() => router.push(`/profile/${user.username}`)}
             className="cursor-pointer"
           >
             <Avatar 

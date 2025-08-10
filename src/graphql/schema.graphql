@@ -2,6 +2,7 @@
 
 type Query {
   health: String
+  userByUsername(username: String!): User
   tweet(id: ID!): Tweet
   userTweets(username: String!, first: Int!, after: String): TweetConnection
   homeFeed(first: Int!, after: String): TweetConnection

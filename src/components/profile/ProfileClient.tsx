@@ -3,36 +3,15 @@
 import React from 'react';
 import MainContainer from '@/components/layout/MainContainer';
 import TweetCard from '@/components/tweet/TweetCard';
-import { useUserByUsername } from '@/hooks/useUser';
 import { useUserTweets } from '@/hooks/useTweets';
+import { User } from '@/graphql/types';
 
-export default function Profile({ params }: { params: { username: string } }) {
-  const { user, loading: userLoading, error: userError } = useUserByUsername(params.username);
-  const { tweets, loading: tweetsLoading, error: tweetsError } = useUserTweets(params.username, 10);
-
-  if (userLoading) {
-    return (
-      <MainContainer showTopBar={true}>
-        <div className="p-4 text-center">
-          加载中...
-        </div>
-      </MainContainer>
-    );
-  }
-
-  if (userError) {
-    return (
-      <MainContainer showTopBar={true}>
-        <div className="p-4 text-center text-red-500">
-          用户不存在
-        </div>
-      </MainContainer>
-    );
-  }
+export default function ProfileClient({ user }: { user: User }) {
+  const { tweets, loading: tweetsLoading, error: tweetsError } = useUserTweets(user.username, 10);
 
   return (
     <MainContainer showTopBar={true}>
-      {/* 用户封面 */}
+      {/* User Banner */}
       <div className="h-48 bg-gray-300 relative">
         {user?.bannerUrl ? (
           <img 
@@ -44,7 +23,7 @@ export default function Profile({ params }: { params: { username: string } }) {
           <div className="w-full h-full bg-gradient-to-r from-blue-400 to-purple-500"></div>
         )}
         
-        {/* 用户头像 */}
+        {/* User Avatar */}
         <div className="absolute -bottom-16 left-4">
           <div className="w-32 h-32 rounded-full border-4 border-white bg-gray-200">
             {user?.avatarUrl ? (
@@ -64,11 +43,11 @@ export default function Profile({ params }: { params: { username: string } }) {
         </div>
       </div>
 
-      {/* 用户信息 */}
+      {/* User Info */}
       <div className="pt-16 px-4">
         <div className="flex justify-end mb-4">
           <button className="px-4 py-2 border border-gray-300 rounded-full font-bold hover:bg-gray-50">
-            编辑资料
+            Edit Profile
           </button>
         </div>
         
@@ -94,43 +73,43 @@ export default function Profile({ params }: { params: { username: string } }) {
         
         <div className="flex text-gray-500 text-sm mb-4">
           <span className="mr-4">
-            <span className="font-bold text-black">{user?.followingCount || 0}</span> 正在关注
+            <span className="font-bold text-black">{user?.followingCount || 0}</span> Following
           </span>
           <span>
-            <span className="font-bold text-black">{user?.followersCount || 0}</span> 位粉丝
+            <span className="font-bold text-black">{user?.followersCount || 0}</span> Followers
           </span>
         </div>
       </div>
 
-      {/* 用户标签页 */}
+      {/* User Tabs */}
       <div className="border-b border-gray-200">
         <div className="flex">
           <button className="flex-1 py-4 font-bold text-center border-b-2 border-black">
-            推文
+            Tweets
           </button>
           <button className="flex-1 py-4 text-gray-500 text-center">
-            回复
+            Replies
           </button>
           <button className="flex-1 py-4 text-gray-500 text-center">
-            媒体
+            Media
           </button>
           <button className="flex-1 py-4 text-gray-500 text-center">
-            喜欢
+            Likes
           </button>
         </div>
       </div>
 
-      {/* 用户推文 */}
+      {/* User Tweets */}
       <div>
         {tweetsLoading && (
           <div className="p-4 text-center">
-            加载中...
+            Loading tweets...
           </div>
         )}
         
         {tweetsError && (
           <div className="p-4 text-center text-red-500">
-            加载失败: {tweetsError.message}
+            Failed to load tweets: {tweetsError.message}
           </div>
         )}
         
@@ -140,7 +119,7 @@ export default function Profile({ params }: { params: { username: string } }) {
         
         {tweets.length === 0 && !tweetsLoading && (
           <div className="p-8 text-center text-gray-500">
-            暂无推文
+            No tweets yet
           </div>
         )}
       </div>

@@ -72,7 +72,7 @@ const Sidebar: React.FC = () => {
   const { user } = useAuth();
 
   // 获取个人资料页面链接
-  const profileHref = user ? `/${user.username}` : '/profile';
+  const profileHref = user ? `/profile/${user.username}` : '/login';
 
   return (
     <div className="sticky top-0 h-screen flex flex-col p-4">

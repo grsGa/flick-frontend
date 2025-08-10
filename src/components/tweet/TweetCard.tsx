@@ -25,7 +25,7 @@ const TweetCard: React.FC<TweetCardProps> = ({
 }) => {
   const handleUserClick = () => {
     // Navigate to user profile
-    window.location.href = `/${tweet.author.username}`;
+    window.location.href = `/profile/${tweet.author.username}`;
   };
 
   return (

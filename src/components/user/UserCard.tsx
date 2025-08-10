@@ -10,7 +10,7 @@ interface UserCardProps {
 
 const UserCard: React.FC<UserCardProps> = ({ user, className = '' }) => {
   const handleUserClick = () => {
-    window.location.href = `/${user.username}`;
+    window.location.href = `/profile/${user.username}`;
   };
 
   return (

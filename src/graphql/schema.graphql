@@ -49,6 +49,11 @@ type Mutation {
   
   # Media mutations
   uploadMedia(file: Upload!): Media!
+  
+  # User mutations
+  updateProfile(input: UpdateProfileInput!): User!
+  followUser(userId: ID!): User!
+  unfollowUser(userId: ID!): User!
 }
 
 schema {

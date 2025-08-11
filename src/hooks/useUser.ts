@@ -22,6 +22,7 @@ const USER_BY_USERNAME_QUERY = gql`
 const FOLLOW_USER_MUTATION = gql`
   mutation FollowUser($userId: ID!) {
     followUser(userId: $userId) {
+      id
       isFollowing
       followersCount
     }
@@ -31,6 +32,7 @@ const FOLLOW_USER_MUTATION = gql`
 const UNFOLLOW_USER_MUTATION = gql`
   mutation UnfollowUser($userId: ID!) {
     unfollowUser(userId: $userId) {
+      id
       isFollowing
       followersCount
     }

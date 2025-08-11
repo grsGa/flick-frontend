@@ -22,6 +22,15 @@ const FollowersClient: React.FC<FollowersClientProps> = ({
   const [hasMore, setHasMore] = React.useState(initialPageInfo.hasNextPage);
   const [items, setItems] = React.useState<User[]>(initialFollowers);
 
+  if (items.length === 0) {
+    return (
+      <div className="text-center p-8">
+        <h2 className="text-2xl font-bold mb-2">No followers yet</h2>
+        <p className="text-gray-500">When someone follows this account, they'll show up here.</p>
+      </div>
+    );
+  }
+
   const loadMore = async () => {
     if (!pageInfo?.endCursor) {
       setHasMore(false);

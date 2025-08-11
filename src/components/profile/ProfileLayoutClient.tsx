@@ -8,6 +8,8 @@ import ProfileTabs from '@/components/profile/ProfileTabs';
 import MainContainer from '@/components/layout/MainContainer';
 import BackButton from '@/components/core/BackButton';
 import FollowTabs from '@/components/profile/FollowTabs';
+import { useAuth } from '@/hooks/useAuth';
+import { useFollowUser, useUnfollowUser } from '@/hooks/useUser';
 
 interface ProfileLayoutClientProps {
   user: User;
@@ -16,7 +18,18 @@ interface ProfileLayoutClientProps {
 
 const ProfileLayoutClient: React.FC<ProfileLayoutClientProps> = ({ user, children }) => {
   const pathname = usePathname();
+  const { user: currentUser } = useAuth();
+  const { followUser } = useFollowUser();
+  const { unfollowUser } = useUnfollowUser();
   const isFollowPage = pathname.endsWith('/followers') || pathname.endsWith('/following');
+
+  const handleFollow = async () => {
+    if (user.isFollowing) {
+      await unfollowUser({ variables: { userId: user.id } });
+    } else {
+      await followUser({ variables: { userId: user.id } });
+    }
+  };
 
   if (isFollowPage) {
     return (
@@ -71,9 +84,22 @@ const ProfileLayoutClient: React.FC<ProfileLayoutClientProps> = ({ user, childre
       {/* User Info */}
       <div className="pt-16 px-4">
         <div className="flex justify-end mb-4">
-          <button className="px-4 py-2 border border-gray-300 rounded-full font-bold hover:bg-gray-50">
-            Edit Profile
-          </button>
+          {currentUser?.id === user.id ? (
+            <button className="px-4 py-2 border border-gray-300 rounded-full font-bold hover:bg-gray-50">
+              Edit Profile
+            </button>
+          ) : (
+            <button
+              className={`px-4 py-2 rounded-full font-bold ${
+                user.isFollowing
+                  ? 'bg-white text-black border border-gray-300'
+                  : 'bg-black text-white'
+              }`}
+              onClick={handleFollow}
+            >
+              {user.isFollowing ? 'Following' : 'Follow'}
+            </button>
+          )}
         </div>
         
         <div className="mb-4">

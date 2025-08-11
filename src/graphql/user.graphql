@@ -17,6 +17,12 @@ type User {
 input UpdateProfileInput {
   displayName: String
   bio: String
+  location: String
+  website: String
   avatarUrl: String
   bannerUrl: String
+}
+
+type Mutation {
+  updateProfile(input: UpdateProfileInput!): User
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { User } from '@/graphql/types';
 import Link from 'next/link';
@@ -10,6 +10,7 @@ import BackButton from '@/components/core/BackButton';
 import FollowTabs from '@/components/profile/FollowTabs';
 import { useAuth } from '@/hooks/useAuth';
 import { useFollowUser, useUnfollowUser } from '@/hooks/useUser';
+import EditProfileModal from './EditProfileModal';
 
 interface ProfileLayoutClientProps {
   user: User;
@@ -21,6 +22,7 @@ const ProfileLayoutClient: React.FC<ProfileLayoutClientProps> = ({ user, childre
   const { user: currentUser } = useAuth();
   const { followUser } = useFollowUser();
   const { unfollowUser } = useUnfollowUser();
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const isFollowPage = pathname.endsWith('/followers') || pathname.endsWith('/following');
 
   const handleFollow = async () => {
@@ -85,9 +87,17 @@ const ProfileLayoutClient: React.FC<ProfileLayoutClientProps> = ({ user, childre
       <div className="pt-16 px-4">
         <div className="flex justify-end mb-4">
           {currentUser?.id === user.id ? (
-            <button className="px-4 py-2 border border-gray-300 rounded-full font-bold hover:bg-gray-50">
-              Edit Profile
-            </button>
+            <>
+              <button
+                onClick={() => setIsEditModalOpen(true)}
+                className="px-4 py-2 border border-gray-300 rounded-full font-bold hover:bg-gray-50"
+              >
+                Edit Profile
+              </button>
+              {isEditModalOpen && (
+                <EditProfileModal user={user} onClose={() => setIsEditModalOpen(false)} />
+              )}
+            </>
           ) : (
             <button
               className={`px-4 py-2 rounded-full font-bold ${

@@ -1,6 +1,6 @@
 "use client";
 
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
@@ -69,7 +69,22 @@ const navItems: NavItem[] = [
 
 const Sidebar: React.FC = () => {
   const pathname = usePathname();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setIsMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   // 获取个人资料页面链接
   const profileHref = user ? `/profile/${user.username}` : '/login';
@@ -112,8 +127,33 @@ const Sidebar: React.FC = () => {
 
       {/* 用户菜单 */}
       {user && (
-        <div className="mt-auto">
-          <div className="flex items-center p-3 rounded-full hover:bg-gray-100 cursor-pointer">
+        <div className="mt-auto relative" ref={menuRef}>
+          {isMenuOpen && (
+            <div className="absolute bottom-full mb-2 w-64 bg-white rounded-lg shadow-2xl py-2">
+              <ul>
+                <li>
+                  <button className="w-full text-left px-4 py-2 hover:bg-gray-100 font-bold">
+                    Settings
+                  </button>
+                </li>
+                <li>
+                  <button
+                    onClick={logout}
+                    className="w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600 font-bold"
+                  >
+                    Log out @{user.username}
+                  </button>
+                </li>
+              </ul>
+              <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-1/2 rotate-45 w-4 h-4 bg-white"></div>
+            </div>
+          )}
+          <div
+            className={`flex items-center p-3 rounded-full cursor-pointer ${
+              !isMenuOpen && 'hover:bg-gray-100'
+            }`}
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+          >
             <Avatar src={user.avatarUrl} alt={user.username} size="md" />
             <div className="ml-3 hidden lg:block">
               <div className="font-bold">{user.displayName || user.username}</div>

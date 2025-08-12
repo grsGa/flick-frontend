@@ -18,6 +18,7 @@ interface AuthContextType {
   login: (token: string, user: User) => void;
   logout: () => void;
   isAuthenticated: boolean;
+  isLoading: boolean;
 }
 
 // 创建认证上下文
@@ -32,29 +33,34 @@ interface AuthProviderProps {
 export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
   // 从 localStorage 加载初始状态
   useEffect(() => {
     if (typeof window !== "undefined") {
-      const storedToken = localStorage.getItem("token");
-      const storedUser = localStorage.getItem("user");
+      try {
+        const storedToken = localStorage.getItem("token");
+        const storedUser = localStorage.getItem("user");
 
-      if (storedToken && storedUser) {
-        setToken(storedToken);
-        try {
+        if (storedToken && storedUser) {
+          setToken(storedToken);
           const parsedUser = JSON.parse(storedUser);
-          // 验证用户对象的基本结构
           if (parsedUser && typeof parsedUser.id === "string" && typeof parsedUser.username === "string") {
             setUser(parsedUser);
           } else {
             throw new Error("Invalid user data in localStorage");
           }
-        } catch (e) {
-          console.error("Failed to parse user from localStorage", e);
-          localStorage.removeItem("user");
         }
+      } catch (e) {
+        console.error("Failed to parse user from localStorage", e);
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+      } finally {
+        setIsLoading(false);
       }
+    } else {
+      setIsLoading(false);
     }
   }, []);
 
@@ -88,7 +94,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
     token,
     login,
     logout,
-    isAuthenticated
+    isAuthenticated,
+    isLoading
   };
 
   // 使用 React.createElement 替代 JSX 语法

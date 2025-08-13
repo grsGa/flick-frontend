@@ -32,11 +32,73 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ user, onClose }) =>
   const [error, setError] = useState('');
 
   const [updateProfile, { loading }] = useMutation(UPDATE_PROFILE_MUTATION, {
-    onCompleted: () => {
+    onCompleted: (data) => {
+      // Update Apollo Client cache to reflect the changes immediately
+      // This ensures the profile page shows updated data without needing to refetch
       onClose();
     },
     onError: (err) => {
       setError(err.message);
+    },
+    // Refetch the UserByUsername query to ensure UI updates immediately
+    refetchQueries: [
+      {
+        query: gql`
+          query UserByUsername($username: String!) {
+            userByUsername(username: $username) {
+              id
+              username
+              displayName
+              bio
+              location
+              website
+              avatarUrl
+              bannerUrl
+              followersCount
+              followingCount
+              isFollowing
+              isVerified
+              createdAt
+            }
+          }
+        `,
+        variables: { username: user.username },
+      },
+    ],
+    // Also update cache directly for immediate UI response
+    update: (cache, { data }) => {
+      if (data?.updateProfile) {
+        // Write the updated user data to cache
+        cache.writeQuery({
+          query: gql`
+            query UserByUsername($username: String!) {
+              userByUsername(username: $username) {
+                id
+                username
+                displayName
+                bio
+                location
+                website
+                avatarUrl
+                bannerUrl
+                followersCount
+                followingCount
+                isFollowing
+                isVerified
+                createdAt
+              }
+            }
+          `,
+          variables: { username: user.username },
+          data: {
+            userByUsername: {
+              ...user,
+              ...data.updateProfile,
+              __typename: 'User',
+            },
+          },
+        });
+      }
     },
   });
 

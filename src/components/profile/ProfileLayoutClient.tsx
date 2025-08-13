@@ -11,25 +11,77 @@ import FollowTabs from '@/components/profile/FollowTabs';
 import { useAuth } from '@/hooks/useAuth';
 import { useFollowUser, useUnfollowUser } from '@/hooks/useUser';
 import EditProfileModal from './EditProfileModal';
+import { useQuery, gql } from '@apollo/client';
+
+const GET_USER_QUERY = gql`
+  query UserByUsername($username: String!) {
+    userByUsername(username: $username) {
+      id
+      username
+      displayName
+      bio
+      location
+      website
+      avatarUrl
+      bannerUrl
+      followersCount
+      followingCount
+      isFollowing
+      isVerified
+      createdAt
+    }
+  }
+`;
 
 interface ProfileLayoutClientProps {
-  user: User;
+  username: string;
   children: React.ReactNode;
 }
 
-const ProfileLayoutClient: React.FC<ProfileLayoutClientProps> = ({ user, children }) => {
+const ProfileLayoutClient: React.FC<ProfileLayoutClientProps> = ({ username, children }) => {
   const pathname = usePathname();
   const { user: currentUser } = useAuth();
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+
+  // Use Apollo Client query to fetch user data on client side
+  const { data, loading, error } = useQuery(GET_USER_QUERY, {
+    variables: { username },
+    errorPolicy: 'all',
+  });
+
   const { followUser } = useFollowUser();
   const { unfollowUser } = useUnfollowUser();
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+
+  // Show loading state while fetching user data
+  if (loading) {
+    return (
+      <MainContainer showTopBar={true}>
+        <div className="flex justify-center items-center h-64">
+          <div className="text-gray-500">Loading profile...</div>
+        </div>
+      </MainContainer>
+    );
+  }
+
+  // Show error state if user fetch failed
+  if (error || !data?.userByUsername) {
+    return (
+      <MainContainer showTopBar={true}>
+        <div className="flex justify-center items-center h-64">
+          <div className="text-red-500">Failed to load profile</div>
+        </div>
+      </MainContainer>
+    );
+  }
+
+  const user = data.userByUsername;
   const isFollowPage = pathname.endsWith('/followers') || pathname.endsWith('/following');
 
   const handleFollow = async () => {
-    if (user.isFollowing) {
-      await unfollowUser({ variables: { userId: user.id } });
+    if (!user.isFollowing) {
+      await followUser(user.id);
     } else {
-      await followUser({ variables: { userId: user.id } });
+      await unfollowUser(user.id);
     }
   };
 

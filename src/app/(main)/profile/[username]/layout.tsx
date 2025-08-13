@@ -52,5 +52,5 @@ export default async function ProfileLayout({
     notFound();
   }
 
-  return <ProfileLayoutClient user={user}>{children}</ProfileLayoutClient>;
+  return <ProfileLayoutClient username={username}>{children}</ProfileLayoutClient>;
 }

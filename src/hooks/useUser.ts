@@ -39,6 +39,20 @@ const UNFOLLOW_USER_MUTATION = gql`
   }
 `;
 
+const UPDATE_PROFILE_MUTATION = gql`
+  mutation UpdateProfile($input: UpdateProfileInput!) {
+    updateProfile(input: $input) {
+      id
+      displayName
+      bio
+      location
+      website
+      avatarUrl
+      bannerUrl
+    }
+  }
+`;
+
 const RECOMMENDED_USERS_QUERY = gql`
   query RecommendedUsers($first: Int!) {
     recommendedUsers(first: $first) {
@@ -79,6 +93,16 @@ export function useUnfollowUser() {
 
   return {
     unfollowUser,
+    loading,
+    error,
+  };
+}
+
+export function useUpdateProfile() {
+  const [updateProfile, { loading, error }] = useMutation(UPDATE_PROFILE_MUTATION);
+
+  return {
+    updateProfile,
     loading,
     error,
   };

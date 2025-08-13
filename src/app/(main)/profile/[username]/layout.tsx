@@ -12,6 +12,8 @@ const GET_USER_QUERY = gql`
       username
       displayName
       bio
+      location
+      website
       avatarUrl
       bannerUrl
       followersCount

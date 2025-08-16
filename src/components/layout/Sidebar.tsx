@@ -64,7 +64,6 @@ const navItems: NavItem[] = [
   { label: '私信', href: '/messages', icon: MessagesIcon },
   { label: '书签', href: '/bookmarks', icon: BookmarksIcon },
   { label: '个人资料', href: '/profile', icon: ProfileIcon },
-  { label: '更多', href: '/more', icon: MoreIcon },
 ];
 
 const Sidebar: React.FC = () => {
@@ -136,6 +135,13 @@ const Sidebar: React.FC = () => {
               </li>
             );
           })}
+          
+          {/* Post 按钮 */}
+          <li className="mt-4">
+            <button className="w-full bg-black text-white font-bold py-3 px-6 rounded-full hover:bg-gray-800 transition-colors">
+              <span className="text-xl">Post</span>
+            </button>
+          </li>
         </ul>
       </nav>
 

@@ -1,9 +1,13 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useMutation, gql } from '@apollo/client';
 import { useAuth } from '@/hooks/useAuth';
 import { User } from '@/graphql/types';
+import AvatarCrop from '@/components/ui/AvatarCrop';
+import BannerCrop from '@/components/ui/BannerCrop';
+import { MediaService } from '@/services/mediaService';
+import { Camera } from 'lucide-react';
 
 const UPDATE_PROFILE_MUTATION = gql`
   mutation UpdateProfile($input: UpdateProfileInput!) {
@@ -30,11 +34,35 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ user, onClose }) =>
   const [location, setLocation] = useState(user.location || '');
   const [website, setWebsite] = useState(user.website || '');
   const [error, setError] = useState('');
+  
+  // Image cropping states
+  const [avatarSrc, setAvatarSrc] = useState('');
+  const [bannerSrc, setBannerSrc] = useState('');
+  const [showAvatarCrop, setShowAvatarCrop] = useState(false);
+  const [showBannerCrop, setShowBannerCrop] = useState(false);
+  const [newAvatarUrl, setNewAvatarUrl] = useState(user.avatarUrl || '');
+  const [newBannerUrl, setNewBannerUrl] = useState(user.bannerUrl || '');
+  const [uploading, setUploading] = useState(false);
+  
+  // File input refs
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const bannerInputRef = useRef<HTMLInputElement>(null);
+
+  const { updateUser } = useAuth();
 
   const [updateProfile, { loading }] = useMutation(UPDATE_PROFILE_MUTATION, {
     onCompleted: (data) => {
       // Update Apollo Client cache to reflect the changes immediately
       // This ensures the profile page shows updated data without needing to refetch
+      
+      // Sync with global auth state for sidebar and other components
+      if (data?.updateProfile) {
+        updateUser({
+          displayName: data.updateProfile.displayName,
+          avatarUrl: data.updateProfile.avatarUrl,
+        });
+      }
+      
       onClose();
     },
     onError: (err) => {
@@ -102,6 +130,59 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ user, onClose }) =>
     },
   });
 
+  // Image handling functions
+  const handleAvatarSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        setAvatarSrc(reader.result as string);
+        setShowAvatarCrop(true);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleBannerSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        setBannerSrc(reader.result as string);
+        setShowBannerCrop(true);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleAvatarCropComplete = async (croppedImageBlob: Blob) => {
+    setUploading(true);
+    try {
+      const url = await MediaService.uploadAvatar(croppedImageBlob, user.id);
+      setNewAvatarUrl(url);
+      setError('');
+    } catch (err) {
+      setError('Failed to upload avatar');
+      console.error('Avatar upload error:', err);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleBannerCropComplete = async (croppedImageBlob: Blob) => {
+    setUploading(true);
+    try {
+      const url = await MediaService.uploadBanner(croppedImageBlob, user.id);
+      setNewBannerUrl(url);
+      setError('');
+    } catch (err) {
+      setError('Failed to upload banner');
+      console.error('Banner upload error:', err);
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     updateProfile({
@@ -111,6 +192,8 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ user, onClose }) =>
           bio,
           location,
           website,
+          avatarUrl: newAvatarUrl,
+          bannerUrl: newBannerUrl,
         },
       },
     });
@@ -135,11 +218,46 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ user, onClose }) =>
         <div className="p-4">
           {/* Banner and Avatar */}
           <div className="relative mb-16">
-            <div className="bg-gray-300 dark:bg-gray-700 h-48 w-full">
-              {user.bannerUrl && <img src={user.bannerUrl} alt="Banner" className="w-full h-full object-cover" />}
+            {/* Banner */}
+            <div className="relative bg-gray-300 dark:bg-gray-700 h-48 w-full rounded-lg overflow-hidden">
+              {newBannerUrl && <img src={newBannerUrl} alt="Banner" className="w-full h-full object-cover" />}
+              <button
+                type="button"
+                onClick={() => bannerInputRef.current?.click()}
+                className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 hover:opacity-100 transition-opacity"
+                disabled={uploading}
+              >
+                <Camera className="w-8 h-8 text-white" />
+              </button>
+              <input
+                ref={bannerInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleBannerSelect}
+                className="hidden"
+              />
             </div>
-            <div className="absolute -bottom-12 left-4 w-24 h-24 rounded-full border-4 border-white dark:border-black bg-gray-400">
-              {user.avatarUrl && <img src={user.avatarUrl} alt="Avatar" className="w-full h-full object-cover rounded-full" />}
+            
+            {/* Avatar */}
+            <div className="absolute -bottom-12 left-4">
+              <div className="relative w-24 h-24 rounded-full border-4 border-white dark:border-black bg-gray-400 overflow-hidden">
+                {newAvatarUrl && <img src={newAvatarUrl} alt="Avatar" className="w-full h-full object-cover" />}
+                <button
+                  type="button"
+                  onClick={() => avatarInputRef.current?.click()}
+                  className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 hover:opacity-100 transition-opacity"
+                  disabled={uploading}
+                >
+                  <Camera className="w-5 h-5 text-white" />
+                </button>
+                <input
+                  ref={avatarInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleAvatarSelect}
+                  className="hidden"
+                />
+              </div>
             </div>
           </div>
 
@@ -182,8 +300,24 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ user, onClose }) =>
             </div>
           </div>
           {error && <p className="text-red-500 mt-4">{error}</p>}
+          {uploading && <p className="text-blue-500 mt-4">Uploading image...</p>}
         </div>
       </div>
+
+      {/* Cropping Modals */}
+      <AvatarCrop
+        isOpen={showAvatarCrop}
+        onClose={() => setShowAvatarCrop(false)}
+        imageSrc={avatarSrc}
+        onCropComplete={handleAvatarCropComplete}
+      />
+      
+      <BannerCrop
+        isOpen={showBannerCrop}
+        onClose={() => setShowBannerCrop(false)}
+        imageSrc={bannerSrc}
+        onCropComplete={handleBannerCropComplete}
+      />
     </div>
   );
 };

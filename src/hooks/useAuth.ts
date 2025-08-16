@@ -17,6 +17,7 @@ interface AuthContextType {
   token: string | null;
   login: (token: string, user: User) => void;
   logout: () => void;
+  updateUser: (updatedUser: Partial<User>) => void;
   isAuthenticated: boolean;
   isLoading: boolean;
 }
@@ -74,6 +75,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
+  // 更新用户信息方法
+  const updateUser = (updatedUser: Partial<User>) => {
+    if (user) {
+      const newUser = { ...user, ...updatedUser };
+      setUser(newUser);
+      if (typeof window !== "undefined") {
+        localStorage.setItem("user", JSON.stringify(newUser));
+      }
+    }
+  };
+
   // 登出方法
   const logout = () => {
     setToken(null);
@@ -94,6 +106,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     token,
     login,
     logout,
+    updateUser,
     isAuthenticated,
     isLoading
   };

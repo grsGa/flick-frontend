@@ -47,7 +47,7 @@ const AuthCallbackContent: React.FC = () => {
       // If token or user is missing, redirect to login
       router.push('/login?error=missing_credentials');
     }
-  }, [router, searchParams, login]);
+  }, []);
 
   return (
     <div className="flex items-center justify-center h-screen">

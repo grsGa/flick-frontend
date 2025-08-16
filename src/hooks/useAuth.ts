@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, createContext, useContext } from "react";
+import React, { useState, useEffect, useCallback, useMemo, createContext, useContext } from "react";
 import { useRouter } from "next/navigation";
 
 // 定义用户接口
@@ -66,17 +66,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, []);
 
   // 登录方法
-  const login = (token: string, user: User) => {
+  const login = useCallback((token: string, user: User) => {
     setToken(token);
     setUser(user);
     if (typeof window !== "undefined") {
       localStorage.setItem("token", token);
       localStorage.setItem("user", JSON.stringify(user));
     }
-  };
+  }, []);
 
   // 更新用户信息方法
-  const updateUser = (updatedUser: Partial<User>) => {
+  const updateUser = useCallback((updatedUser: Partial<User>) => {
     if (user) {
       const newUser = { ...user, ...updatedUser };
       setUser(newUser);
@@ -84,10 +84,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
         localStorage.setItem("user", JSON.stringify(newUser));
       }
     }
-  };
+  }, [user]);
 
   // 登出方法
-  const logout = () => {
+  const logout = useCallback(() => {
     setToken(null);
     setUser(null);
     if (typeof window !== "undefined") {
@@ -95,13 +95,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
       localStorage.removeItem("user");
     }
     router.push("/login");
-  };
+  }, [router]);
 
   // 计算认证状态
   const isAuthenticated = !!token;
 
   // 提供上下文值
-  const contextValue: AuthContextType = {
+  const contextValue: AuthContextType = useMemo(() => ({
     user,
     token,
     login,
@@ -109,7 +109,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     updateUser,
     isAuthenticated,
     isLoading
-  };
+  }), [user, token, login, logout, updateUser, isAuthenticated, isLoading]);
 
   // 使用 React.createElement 替代 JSX 语法
   return React.createElement(

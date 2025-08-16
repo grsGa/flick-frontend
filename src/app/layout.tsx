@@ -5,6 +5,11 @@ import { Providers } from '@/components/layout/Providers';
 export const metadata = {
   title: 'Flick',
   description: '分享你的精彩瞬间',
+  icons: {
+    icon: '/favicon.svg',
+    shortcut: '/favicon.svg',
+    apple: '/favicon.svg',
+  },
 };
 
 export default function RootLayout({

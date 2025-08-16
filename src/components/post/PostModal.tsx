@@ -15,6 +15,7 @@ interface PostModalProps {
 const PostModal: React.FC<PostModalProps> = ({ isOpen, onClose }) => {
   const { user } = useAuth();
   const [content, setContent] = useState('');
+  const [selectedGif, setSelectedGif] = useState<string | null>(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showGifPicker, setShowGifPicker] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -41,16 +42,20 @@ const PostModal: React.FC<PostModalProps> = ({ isOpen, onClose }) => {
   };
 
   const handleGifSelect = (gifUrl: string) => {
-    // TODO: Handle GIF insertion into post content
-    console.log('Selected GIF:', gifUrl);
+    setSelectedGif(gifUrl);
     setShowGifPicker(false);
   };
 
+  const handleRemoveGif = () => {
+    setSelectedGif(null);
+  };
+
   const handlePost = () => {
-    if (content.trim()) {
+    if (content.trim() || selectedGif) {
       // TODO: Implement post submission logic
-      console.log('Posting:', content);
+      console.log('Posting:', { content, gif: selectedGif });
       setContent('');
+      setSelectedGif(null);
       onClose();
     }
   };
@@ -111,6 +116,25 @@ const PostModal: React.FC<PostModalProps> = ({ isOpen, onClose }) => {
                   {content.length}/{maxLength}
                 </span>
               </div>
+
+              {/* Selected GIF Preview */}
+              {selectedGif && (
+                <div className="mt-3 relative inline-block">
+                  <img 
+                    src={selectedGif} 
+                    alt="Selected GIF" 
+                    className="max-w-full h-32 rounded-lg object-cover"
+                  />
+                  <button
+                    onClick={handleRemoveGif}
+                    className="absolute -top-2 -right-2 w-6 h-6 bg-black bg-opacity-70 text-white rounded-full flex items-center justify-center hover:bg-opacity-90"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -189,9 +213,9 @@ const PostModal: React.FC<PostModalProps> = ({ isOpen, onClose }) => {
           {/* Post Button */}
           <button
             onClick={handlePost}
-            disabled={!content.trim() || content.length > maxLength}
+            disabled={(!content.trim() && !selectedGif) || content.length > maxLength}
             className={`px-6 py-2 rounded-full font-bold text-sm ${
-              content.trim() && content.length <= maxLength
+              (content.trim() || selectedGif) && content.length <= maxLength
                 ? 'bg-blue-500 text-white hover:bg-blue-600'
                 : 'bg-gray-300 text-gray-500 cursor-not-allowed'
             }`}

@@ -37,6 +37,55 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
+  // Sync user info from GraphQL when available
+  const syncUserInfo = useCallback(async (currentUser: User) => {
+    if (typeof window !== "undefined" && token) {
+      try {
+        // Fetch latest user info from GraphQL
+        const response = await fetch('http://localhost:8080/graphql', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            query: `
+              query UserByUsername($username: String!) {
+                userByUsername(username: $username) {
+                  id
+                  username
+                  displayName
+                  avatarUrl
+                }
+              }
+            `,
+            variables: { username: currentUser.username }
+          })
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          if (data.data?.userByUsername) {
+            const latestUser = data.data.userByUsername;
+            const updatedUser = {
+              ...currentUser,
+              displayName: latestUser.displayName,
+              avatarUrl: latestUser.avatarUrl
+            };
+            
+            // Only update if there are actual changes
+            if (JSON.stringify(updatedUser) !== JSON.stringify(currentUser)) {
+              setUser(updatedUser);
+              localStorage.setItem("user", JSON.stringify(updatedUser));
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Failed to sync user info:', error);
+      }
+    }
+  }, [token]);
+
   // 从 localStorage 加载初始状态
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -49,6 +98,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
           const parsedUser = JSON.parse(storedUser);
           if (parsedUser && typeof parsedUser.id === "string" && typeof parsedUser.username === "string") {
             setUser(parsedUser);
+            // Sync user info on app load to ensure latest data
+            setTimeout(() => syncUserInfo(parsedUser), 500);
           } else {
             throw new Error("Invalid user data in localStorage");
           }
@@ -63,7 +114,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     } else {
       setIsLoading(false);
     }
-  }, []);
+  }, [syncUserInfo]);
 
   // 登录方法
   const login = useCallback((token: string, user: User) => {
@@ -73,7 +124,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
       localStorage.setItem("token", token);
       localStorage.setItem("user", JSON.stringify(user));
     }
-  }, []);
+    
+    // Sync user info after login to ensure consistency
+    setTimeout(() => syncUserInfo(user), 1000);
+  }, [syncUserInfo]);
 
   // 更新用户信息方法
   const updateUser = useCallback((updatedUser: Partial<User>) => {

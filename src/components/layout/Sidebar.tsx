@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import Avatar from '@/components/core/Avatar';
+import PostModal from '@/components/post/PostModal';
 
 // 定义导航项类型
 interface NavItem {
@@ -70,6 +71,7 @@ const Sidebar: React.FC = () => {
   const pathname = usePathname();
   const { user, logout } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isPostModalOpen, setIsPostModalOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -138,7 +140,10 @@ const Sidebar: React.FC = () => {
           
           {/* Post 按钮 */}
           <li className="mt-4">
-            <button className="w-full bg-black text-white font-bold py-3 px-6 rounded-full hover:bg-gray-800 transition-colors">
+            <button 
+              onClick={() => setIsPostModalOpen(true)}
+              className="w-full bg-black text-white font-bold py-3 px-6 rounded-full hover:bg-gray-800 transition-colors"
+            >
               <span className="text-xl">Post</span>
             </button>
           </li>
@@ -182,6 +187,12 @@ const Sidebar: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Post Modal */}
+      <PostModal 
+        isOpen={isPostModalOpen} 
+        onClose={() => setIsPostModalOpen(false)} 
+      />
     </div>
   );
 };

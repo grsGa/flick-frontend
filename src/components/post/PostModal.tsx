@@ -123,7 +123,9 @@ const PostModal: React.FC<PostModalProps> = ({ isOpen, onClose }) => {
               
               {/* Emoji Picker */}
               {showEmojiPicker && (
-                <div className="absolute bottom-12 left-0 z-10">
+                <div className="absolute top-12 left-1/2 transform -translate-x-1/2 z-10 bg-white rounded-lg shadow-lg border border-gray-200">
+                  {/* 聊天气泡箭头 */}
+                  <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 w-4 h-4 bg-white border-l border-t border-gray-200 rotate-45"></div>
                   <EmojiPicker
                     onEmojiClick={handleEmojiSelect}
                     width={350}

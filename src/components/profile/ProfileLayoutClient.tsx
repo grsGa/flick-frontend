@@ -138,7 +138,7 @@ const ProfileLayoutClient: React.FC<ProfileLayoutClientProps> = ({ username, chi
       {/* User Info */}
       <div className="pt-16 px-4">
         <div className="flex justify-end mb-4">
-          {currentUser?.id === user.id ? (
+          {currentUser?.username === user.username ? (
             <>
               <button
                 onClick={() => setIsEditModalOpen(true)}

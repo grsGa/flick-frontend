@@ -29,9 +29,6 @@ const TopBar: React.FC<TopBarProps> = ({ title }) => {
             <h1 className="text-xl font-bold">{title}</h1>
           )}
         </div>
-        
-        {/* 占位空间保持布局平衡 */}
-        <div className="w-8 h-8"></div>
       </div>
     </div>
   );

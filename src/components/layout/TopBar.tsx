@@ -2,8 +2,6 @@
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
-import Avatar from '@/components/core/Avatar';
-import { useAuth } from '@/hooks/useAuth';
 
 interface TopBarProps {
   title?: string;
@@ -11,7 +9,6 @@ interface TopBarProps {
 
 const TopBar: React.FC<TopBarProps> = ({ title }) => {
   const router = useRouter();
-  const { user } = useAuth();
 
   return (
     <div className="sticky top-0 z-10 bg-white bg-opacity-80 backdrop-blur border-b border-gray-200">
@@ -33,19 +30,8 @@ const TopBar: React.FC<TopBarProps> = ({ title }) => {
           )}
         </div>
         
-        {/* 用户头像 */}
-        {user && (
-          <div 
-            onClick={() => router.push(`/profile/${user.username}`)}
-            className="cursor-pointer"
-          >
-            <Avatar 
-              src={user.avatarUrl} 
-              alt={user.username} 
-              size="sm" 
-            />
-          </div>
-        )}
+        {/* 占位空间保持布局平衡 */}
+        <div className="w-8 h-8"></div>
       </div>
     </div>
   );

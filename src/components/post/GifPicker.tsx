@@ -118,9 +118,12 @@ const GifPicker: React.FC<GifPickerProps> = ({ isOpen, onClose, onGifSelect }) =
   if (!isOpen) return null;
 
   return (
-    <div className="absolute top-12 left-1/2 transform -translate-x-1/2 z-10 bg-white rounded-lg shadow-lg border border-gray-200 w-80 h-80 overflow-hidden">
+    <div className="absolute top-12 left-1/2 transform -translate-x-1/2 z-10">
       {/* 聊天气泡箭头 */}
       <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 w-4 h-4 bg-white border-l border-t border-gray-200 rotate-45"></div>
+      
+      {/* 主容器 */}
+      <div className="bg-white rounded-lg shadow-lg border border-gray-200 w-80 h-80 overflow-hidden">
       
       {/* 搜索框 */}
       <div className="p-4 border-b border-gray-200">
@@ -173,9 +176,10 @@ const GifPicker: React.FC<GifPickerProps> = ({ isOpen, onClose, onGifSelect }) =
         )}
       </div>
 
-      {/* Tenor Attribution */}
-      <div className="p-2 border-t border-gray-200 text-xs text-gray-500 text-center">
-        Powered by Tenor
+        {/* Tenor Attribution */}
+        <div className="p-2 border-t border-gray-200 text-xs text-gray-500 text-center">
+          Powered by Tenor
+        </div>
       </div>
     </div>
   );

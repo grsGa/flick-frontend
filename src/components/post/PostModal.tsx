@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import Avatar from '@/components/core/Avatar';
 import EmojiPicker, { EmojiClickData } from 'emoji-picker-react';
@@ -18,8 +18,18 @@ const PostModal: React.FC<PostModalProps> = ({ isOpen, onClose }) => {
   const [selectedGif, setSelectedGif] = useState<string | null>(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showGifPicker, setShowGifPicker] = useState(false);
+  const [selectedImages, setSelectedImages] = useState<File[]>([]);
+  const [imagePreviewUrls, setImagePreviewUrls] = useState<string[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const maxLength = 280;
+
+  // Cleanup URLs on unmount
+  useEffect(() => {
+    return () => {
+      imagePreviewUrls.forEach(url => URL.revokeObjectURL(url));
+    };
+  }, []);
 
   if (!isOpen) return null;
 
@@ -41,21 +51,88 @@ const PostModal: React.FC<PostModalProps> = ({ isOpen, onClose }) => {
     setShowEmojiPicker(false);
   };
 
-  const handleGifSelect = (gifUrl: string) => {
-    setSelectedGif(gifUrl);
-    setShowGifPicker(false);
-  };
 
   const handleRemoveGif = () => {
     setSelectedGif(null);
   };
 
+  // Image handling functions
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+
+    // Convert FileList to array and limit to 4 images
+    const newFiles = Array.from(files).slice(0, 4 - selectedImages.length);
+    
+    // Check for mutual exclusivity with GIF
+    if (selectedGif && newFiles.length > 0) {
+      setSelectedGif(null);
+    }
+
+    // Filter only image files
+    const imageFiles = newFiles.filter(file => 
+      file.type.startsWith('image/') && 
+      ['image/jpeg', 'image/png', 'image/gif', 'image/webp'].includes(file.type)
+    );
+
+    if (imageFiles.length > 0) {
+      const updatedImages = [...selectedImages, ...imageFiles].slice(0, 4);
+      setSelectedImages(updatedImages);
+      
+      // Create preview URLs
+      const newUrls = imageFiles.map(file => URL.createObjectURL(file));
+      setImagePreviewUrls(prev => [...prev, ...newUrls].slice(0, 4));
+    }
+
+    // Reset input value
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const handleRemoveImage = (index: number) => {
+    // Revoke the object URL to free memory
+    if (imagePreviewUrls[index]) {
+      URL.revokeObjectURL(imagePreviewUrls[index]);
+    }
+    
+    setSelectedImages(prev => prev.filter((_, i) => i !== index));
+    setImagePreviewUrls(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleImageUploadClick = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  // Handle GIF selection with mutual exclusivity
+  const handleGifSelectWithExclusivity = (gifUrl: string) => {
+    if (selectedImages.length > 0) {
+      // Clear images when selecting GIF
+      imagePreviewUrls.forEach(url => URL.revokeObjectURL(url));
+      setSelectedImages([]);
+      setImagePreviewUrls([]);
+    }
+    setSelectedGif(gifUrl);
+    setShowGifPicker(false);
+  };
+
   const handlePost = () => {
-    if (content.trim() || selectedGif) {
+    if (content.trim() || selectedGif || selectedImages.length > 0) {
       // TODO: Implement post submission logic
-      console.log('Posting:', { content, gif: selectedGif });
+      console.log('Posting:', { 
+        content, 
+        gif: selectedGif, 
+        images: selectedImages 
+      });
+      
+      // Cleanup
       setContent('');
       setSelectedGif(null);
+      imagePreviewUrls.forEach(url => URL.revokeObjectURL(url));
+      setSelectedImages([]);
+      setImagePreviewUrls([]);
       onClose();
     }
   };
@@ -135,6 +212,114 @@ const PostModal: React.FC<PostModalProps> = ({ isOpen, onClose }) => {
                   </button>
                 </div>
               )}
+              
+              {/* Selected Images Preview */}
+              {selectedImages.length > 0 && (
+                <div className="mt-3">
+                  {/* Single Image Layout */}
+                  {selectedImages.length === 1 && (
+                    <div className="relative">
+                      <img 
+                        src={imagePreviewUrls[0]} 
+                        alt="Selected image" 
+                        className="w-full max-h-80 rounded-xl object-cover"
+                      />
+                      <button
+                        onClick={() => handleRemoveImage(0)}
+                        className="absolute top-2 right-2 w-6 h-6 bg-black bg-opacity-70 text-white rounded-full flex items-center justify-center hover:bg-opacity-90"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                  )}
+                  
+                  {/* Two Images Layout */}
+                  {selectedImages.length === 2 && (
+                    <div className="grid grid-cols-2 gap-2">
+                      {imagePreviewUrls.map((url, index) => (
+                        <div key={index} className="relative">
+                          <img 
+                            src={url} 
+                            alt={`Selected image ${index + 1}`} 
+                            className="w-full h-48 rounded-xl object-cover"
+                          />
+                          <button
+                            onClick={() => handleRemoveImage(index)}
+                            className="absolute top-2 right-2 w-6 h-6 bg-black bg-opacity-70 text-white rounded-full flex items-center justify-center hover:bg-opacity-90"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  
+                  {/* Three Images Layout */}
+                  {selectedImages.length === 3 && (
+                    <div className="grid grid-cols-2 gap-2 h-96">
+                      <div className="relative row-span-2">
+                        <img 
+                          src={imagePreviewUrls[0]} 
+                          alt="Selected image 1" 
+                          className="w-full h-full rounded-xl object-cover"
+                        />
+                        <button
+                          onClick={() => handleRemoveImage(0)}
+                          className="absolute top-2 right-2 w-6 h-6 bg-black bg-opacity-70 text-white rounded-full flex items-center justify-center hover:bg-opacity-90"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+                      {imagePreviewUrls.slice(1).map((url, index) => (
+                        <div key={index + 1} className="relative">
+                          <img 
+                            src={url} 
+                            alt={`Selected image ${index + 2}`} 
+                            className="w-full h-full rounded-xl object-cover"
+                          />
+                          <button
+                            onClick={() => handleRemoveImage(index + 1)}
+                            className="absolute top-2 right-2 w-6 h-6 bg-black bg-opacity-70 text-white rounded-full flex items-center justify-center hover:bg-opacity-90"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  
+                  {/* Four Images Layout */}
+                  {selectedImages.length === 4 && (
+                    <div className="grid grid-cols-2 gap-2">
+                      {imagePreviewUrls.map((url, index) => (
+                        <div key={index} className="relative">
+                          <img 
+                            src={url} 
+                            alt={`Selected image ${index + 1}`} 
+                            className="w-full h-48 rounded-xl object-cover"
+                          />
+                          <button
+                            onClick={() => handleRemoveImage(index)}
+                            className="absolute top-2 right-2 w-6 h-6 bg-black bg-opacity-70 text-white rounded-full flex items-center justify-center hover:bg-opacity-90"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -174,11 +359,27 @@ const PostModal: React.FC<PostModalProps> = ({ isOpen, onClose }) => {
             </div>
 
             {/* Image Upload Button */}
-            <button className="w-9 h-9 rounded-full hover:bg-blue-50 flex items-center justify-center text-blue-500">
+            <button 
+              onClick={handleImageUploadClick}
+              disabled={selectedImages.length >= 4 || !!selectedGif}
+              className={`w-9 h-9 rounded-full hover:bg-blue-50 flex items-center justify-center ${
+                selectedImages.length >= 4 || !!selectedGif ? 'text-gray-400 cursor-not-allowed' : 'text-blue-500'
+              }`}
+            >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
             </button>
+            
+            {/* Hidden File Input */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/gif,image/webp"
+              multiple
+              onChange={handleImageSelect}
+              className="hidden"
+            />
 
             {/* GIF Button */}
             <div className="relative">
@@ -198,7 +399,7 @@ const PostModal: React.FC<PostModalProps> = ({ isOpen, onClose }) => {
               <GifPicker
                 isOpen={showGifPicker}
                 onClose={() => setShowGifPicker(false)}
-                onGifSelect={handleGifSelect}
+                onGifSelect={handleGifSelectWithExclusivity}
               />
             </div>
 
@@ -213,9 +414,9 @@ const PostModal: React.FC<PostModalProps> = ({ isOpen, onClose }) => {
           {/* Post Button */}
           <button
             onClick={handlePost}
-            disabled={(!content.trim() && !selectedGif) || content.length > maxLength}
+            disabled={(!content.trim() && !selectedGif && selectedImages.length === 0) || content.length > maxLength}
             className={`px-6 py-2 rounded-full font-bold text-sm ${
-              (content.trim() || selectedGif) && content.length <= maxLength
+              (content.trim() || selectedGif || selectedImages.length > 0) && content.length <= maxLength
                 ? 'bg-blue-500 text-white hover:bg-blue-600'
                 : 'bg-gray-300 text-gray-500 cursor-not-allowed'
             }`}

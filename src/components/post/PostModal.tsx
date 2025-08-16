@@ -481,7 +481,8 @@ const PostModal: React.FC<PostModalProps> = ({ isOpen, onClose }) => {
                   setShowEmojiPicker(!showEmojiPicker);
                   setShowGifPicker(false);
                 }}
-                className="w-9 h-9 rounded-full hover:bg-blue-50 flex items-center justify-center text-blue-500"
+                className="w-9 h-9 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-700 hover:text-black transition-colors"
+                title="Emoji"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -508,10 +509,11 @@ const PostModal: React.FC<PostModalProps> = ({ isOpen, onClose }) => {
             {/* Image Upload Button */}
             <button 
               onClick={handleImageUploadClick}
-              disabled={selectedImages.length >= 4 || !!selectedGif}
-              className={`w-9 h-9 rounded-full hover:bg-blue-50 flex items-center justify-center ${
-                selectedImages.length >= 4 || !!selectedGif ? 'text-gray-400 cursor-not-allowed' : 'text-blue-500'
+              disabled={selectedImages.length >= 4 || !!selectedGif || !!pollData}
+              className={`w-9 h-9 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors ${
+                selectedImages.length >= 4 || !!selectedGif || !!pollData ? 'text-gray-400 cursor-not-allowed' : 'text-gray-700 hover:text-black'
               }`}
+              title="Media"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -535,10 +537,16 @@ const PostModal: React.FC<PostModalProps> = ({ isOpen, onClose }) => {
                   setShowGifPicker(!showGifPicker);
                   setShowEmojiPicker(false);
                 }}
-                className="w-9 h-9 rounded-full hover:bg-blue-50 flex items-center justify-center text-blue-500"
+                disabled={selectedImages.length > 0 || !!pollData}
+                className={`w-9 h-9 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors ${
+                  selectedImages.length > 0 || !!pollData ? 'text-gray-400 cursor-not-allowed' : 'text-gray-700 hover:text-black'
+                }`}
+                title="GIF"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 4V2a1 1 0 011-1h8a1 1 0 011 1v2m-9 0h10m-9 0a2 2 0 00-2 2v14a2 2 0 002 2h8a2 2 0 002-2V6a2 2 0 00-2-2" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 9h6v6H9z" />
+                  <circle cx="12" cy="12" r="1" fill="currentColor" />
                 </svg>
               </button>
               
@@ -554,13 +562,14 @@ const PostModal: React.FC<PostModalProps> = ({ isOpen, onClose }) => {
             <button 
               onClick={handlePollToggle}
               disabled={!!selectedGif || selectedImages.length > 0}
-              className={`w-9 h-9 rounded-full hover:bg-blue-50 flex items-center justify-center ${
+              className={`w-9 h-9 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors ${
                 selectedGif || selectedImages.length > 0 ? 'text-gray-400 cursor-not-allowed' : 
-                showPollEditor ? 'text-blue-600 bg-blue-50' : 'text-blue-500'
+                showPollEditor ? 'text-black bg-gray-100' : 'text-gray-700 hover:text-black'
               }`}
+              title="Poll"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
             </button>
           </div>
@@ -569,11 +578,12 @@ const PostModal: React.FC<PostModalProps> = ({ isOpen, onClose }) => {
           <button
             onClick={handlePost}
             disabled={(!content.trim() && !selectedGif && selectedImages.length === 0 && !pollData) || content.length > maxLength}
-            className={`px-6 py-2 rounded-full font-bold text-sm ${
+            className={`px-6 py-2 rounded-full font-bold text-sm transition-colors ${
               (content.trim() || selectedGif || selectedImages.length > 0 || pollData) && content.length <= maxLength
-                ? 'bg-blue-500 text-white hover:bg-blue-600'
+                ? 'bg-black text-white hover:bg-gray-800'
                 : 'bg-gray-300 text-gray-500 cursor-not-allowed'
             }`}
+            title="Post"
           >
             Post
           </button>

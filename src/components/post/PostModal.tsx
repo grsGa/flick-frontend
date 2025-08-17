@@ -22,6 +22,11 @@ const PostModal: React.FC<PostModalProps> = ({ isOpen, onClose }) => {
   const [imagePreviewUrls, setImagePreviewUrls] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
+  // Reply permission state
+  const [replyPermission, setReplyPermission] = useState<'EVERYONE' | 'FOLLOWING' | 'MENTIONED_ONLY'>('EVERYONE');
+  const [showReplyPermissionDropdown, setShowReplyPermissionDropdown] = useState(false);
+  const replyPermissionRef = useRef<HTMLDivElement>(null);
+  
   // Poll state management
   const [showPollEditor, setShowPollEditor] = useState(false);
   const [pollData, setPollData] = useState<{
@@ -37,6 +42,23 @@ const PostModal: React.FC<PostModalProps> = ({ isOpen, onClose }) => {
       imagePreviewUrls.forEach(url => URL.revokeObjectURL(url));
     };
   }, []);
+
+  // Click outside handler for reply permission dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (replyPermissionRef.current && !replyPermissionRef.current.contains(event.target as Node)) {
+        setShowReplyPermissionDropdown(false);
+      }
+    };
+
+    if (showReplyPermissionDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showReplyPermissionDropdown]);
 
   if (!isOpen) return null;
 
@@ -572,6 +594,98 @@ const PostModal: React.FC<PostModalProps> = ({ isOpen, onClose }) => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
             </button>
+          </div>
+
+          {/* Who can reply button */}
+          <div className="relative" ref={replyPermissionRef}>
+            <button
+              onClick={() => setShowReplyPermissionDropdown(!showReplyPermissionDropdown)}
+              className="text-blue-500 font-bold text-sm hover:text-blue-600 transition-colors flex items-center gap-1"
+            >
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+              </svg>
+              {replyPermission === 'EVERYONE' ? 'Everyone can reply' : 
+               replyPermission === 'FOLLOWING' ? 'Accounts you follow' : 
+               'Only accounts you mention'}
+            </button>
+
+            {/* Reply Permission Dropdown */}
+            {showReplyPermissionDropdown && (
+              <div className="absolute top-full left-0 mt-2 bg-white rounded-lg shadow-lg border border-gray-200 py-2 min-w-48 z-20">
+                {/* 聊天气泡箭头 */}
+                <div className="absolute -top-2 left-6 w-4 h-4 bg-white border-l border-t border-gray-200 rotate-45"></div>
+                <div className="px-4 py-2 text-sm font-semibold text-gray-900 border-b border-gray-100">
+                  Who can reply?
+                </div>
+                
+                <button
+                  onClick={() => {
+                    setReplyPermission('EVERYONE');
+                    setShowReplyPermissionDropdown(false);
+                  }}
+                  className={`w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors ${
+                    replyPermission === 'EVERYONE' ? 'bg-blue-50' : ''
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="font-medium text-gray-900">Everyone</div>
+                      <div className="text-sm text-gray-500">Anyone can reply</div>
+                    </div>
+                    {replyPermission === 'EVERYONE' && (
+                      <svg className="w-5 h-5 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    )}
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setReplyPermission('FOLLOWING');
+                    setShowReplyPermissionDropdown(false);
+                  }}
+                  className={`w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors ${
+                    replyPermission === 'FOLLOWING' ? 'bg-blue-50' : ''
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="font-medium text-gray-900">Accounts you follow</div>
+                      <div className="text-sm text-gray-500">Only people you follow can reply</div>
+                    </div>
+                    {replyPermission === 'FOLLOWING' && (
+                      <svg className="w-5 h-5 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    )}
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setReplyPermission('MENTIONED_ONLY');
+                    setShowReplyPermissionDropdown(false);
+                  }}
+                  className={`w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors ${
+                    replyPermission === 'MENTIONED_ONLY' ? 'bg-blue-50' : ''
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="font-medium text-gray-900">Only accounts you mention</div>
+                      <div className="text-sm text-gray-500">Only mentioned users can reply</div>
+                    </div>
+                    {replyPermission === 'MENTIONED_ONLY' && (
+                      <svg className="w-5 h-5 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    )}
+                  </div>
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Post Button */}

@@ -2,19 +2,19 @@ import React from 'react';
 import { Interaction } from '@/graphql/types';
 import { formatNumber } from '@/lib/utils';
 
-interface TweetActionsProps {
+interface PostActionsProps {
   interaction: Interaction;
   onLike?: () => void;
   onComment?: () => void;
-  onRetweet?: () => void;
+  onRepost?: () => void;
   onBookmark?: () => void;
 }
 
-const TweetActions: React.FC<TweetActionsProps> = ({
+const PostActions: React.FC<PostActionsProps> = ({
   interaction,
   onLike,
   onComment,
-  onRetweet,
+  onRepost,
   onBookmark,
 }) => {
   return (
@@ -34,11 +34,11 @@ const TweetActions: React.FC<TweetActionsProps> = ({
         )}
       </button>
 
-      {/* Retweet */}
+      {/* Repost */}
       <button 
-        onClick={onRetweet}
+        onClick={onRepost}
         className={`flex items-center group ${
-          interaction.isRetweeted ? 'text-green-500' : 'text-gray-500 hover:text-green-500'
+          interaction.isReposted ? 'text-green-500' : 'text-gray-500 hover:text-green-500'
         }`}
       >
         <div className="p-2 rounded-full group-hover:bg-green-100">
@@ -46,8 +46,8 @@ const TweetActions: React.FC<TweetActionsProps> = ({
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
           </svg>
         </div>
-        {interaction.retweetCount > 0 && (
-          <span className="ml-1 text-sm">{formatNumber(interaction.retweetCount)}</span>
+        {interaction.repostCount > 0 && (
+          <span className="ml-1 text-sm">{formatNumber(interaction.repostCount)}</span>
         )}
       </button>
 
@@ -97,4 +97,4 @@ const TweetActions: React.FC<TweetActionsProps> = ({
   );
 };
 
-export default TweetActions;
+export default PostActions;

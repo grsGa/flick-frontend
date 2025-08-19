@@ -2,7 +2,7 @@ import React from 'react';
 import { notFound } from 'next/navigation';
 import client from '@/lib/apollo-client';
 import { gql } from '@apollo/client';
-import { User, PageInfo, Tweet } from '@/graphql/types';
+import { User, PageInfo, Post } from '@/graphql/types';
 import MediaClient from '@/components/profile/MediaClient';
 import ProfileTabs from '@/components/profile/ProfileTabs';
 
@@ -38,10 +38,10 @@ const GET_USER_MEDIA = gql`
           interaction {
             isLiked
             isBookmarked
-            isRetweeted
+            isReposted
             likeCount
             commentCount
-            retweetCount
+            repostCount
           }
         }
       }
@@ -72,7 +72,7 @@ async function getMediaPageData(username: string) {
 
     return {
       user,
-      tweets: mediaResult.data.userMedia.edges.map((edge: any) => edge.node),
+      posts: mediaResult.data.userMedia.edges.map((edge: any) => edge.node),
       pageInfo: mediaResult.data.userMedia.pageInfo,
     };
   } catch (error) {
@@ -89,12 +89,12 @@ export default async function MediaPage({ params }: { params: Promise<{ username
     notFound();
   }
 
-  const { user, tweets, pageInfo } = data;
+  const { user, posts, pageInfo } = data;
 
   return (
     <MediaClient
       userId={user.id}
-      initialTweets={tweets}
+      initialPosts={posts}
       initialPageInfo={pageInfo}
     />
   );

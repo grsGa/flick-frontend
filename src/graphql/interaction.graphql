@@ -3,20 +3,20 @@
 type Interaction {
   isLiked: Boolean!
   isBookmarked: Boolean!
-  isRetweeted: Boolean!
+  isReposted: Boolean!
   likeCount: Int!
   commentCount: Int!
-  retweetCount: Int!
+  repostCount: Int!
 }
 
-input LikeTweetInput {
-  tweetId: ID!
+input LikePostInput {
+  postId: ID!
 }
 
-input BookmarkTweetInput {
-  tweetId: ID!
+input BookmarkPostInput {
+  postId: ID!
 }
 
-input RetweetInput {
-  tweetId: ID!
+input RepostInput {
+  postId: ID!
 }

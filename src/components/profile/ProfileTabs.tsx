@@ -11,7 +11,7 @@ interface ProfileTabsProps {
 const ProfileTabs: React.FC<ProfileTabsProps> = ({ username }) => {
   const pathname = usePathname();
   const tabs = [
-    { name: 'Tweets', href: `/profile/${username}/tweets` },
+    { name: 'Posts', href: `/profile/${username}/posts` },
     { name: 'Replies', href: `/profile/${username}/with_replies` },
     { name: 'Media', href: `/profile/${username}/media` },
     { name: 'Likes', href: `/profile/${username}/likes` },

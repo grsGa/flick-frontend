@@ -17,7 +17,7 @@ export interface User {
   createdAt: string;
 }
 
-export interface Tweet {
+export interface Post {
   id: string;
   content: string;
   author: User;
@@ -25,6 +25,7 @@ export interface Tweet {
   media: Media[];
   interaction: Interaction;
 }
+
 
 export interface Media {
   id: string;
@@ -40,10 +41,10 @@ export enum MediaType {
 export interface Interaction {
   isLiked: boolean;
   isBookmarked: boolean;
-  isRetweeted: boolean;
+  isReposted: boolean;
   likeCount: number;
   commentCount: number;
-  retweetCount: number;
+  repostCount: number;
 }
 
 export interface PageInfo {
@@ -51,15 +52,16 @@ export interface PageInfo {
   endCursor?: string;
 }
 
-export interface TweetConnection {
-  edges: TweetEdge[];
+export interface PostConnection {
+  edges: PostEdge[];
   pageInfo: PageInfo;
 }
 
-export interface TweetEdge {
-  node: Tweet;
+export interface PostEdge {
+  node: Post;
   cursor: string;
 }
+
 
 export interface AuthPayload {
   token: string;
@@ -79,7 +81,7 @@ export enum NotificationType {
   LIKE = "LIKE",
   COMMENT = "COMMENT",
   FOLLOW = "FOLLOW",
-  RETWEET = "RETWEET",
+  REPOST = "REPOST",
   BOOKMARK = "BOOKMARK"
 }
 

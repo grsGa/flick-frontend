@@ -73,7 +73,27 @@ const LoginPage: React.FC = () => {
         router.push('/home');
       }
     } catch (err: any) {
-      setError(err.message || '登录失败，请检查用户名和密码');
+      console.error('[Login] Error details:', err);
+      
+      // 提供更友好的错误消息
+      let errorMessage = '登录失败，请检查用户名和密码';
+      
+      if (err.message) {
+        const message = err.message.toLowerCase();
+        if (message.includes('user not found')) {
+          errorMessage = '该账户不存在，请检查用户名或邮箱是否正确，或者先注册新账户。';
+        } else if (message.includes('invalid password')) {
+          errorMessage = '密码错误，请重新输入正确的密码。';
+        } else if (message.includes('invalid credentials')) {
+          errorMessage = '用户名或密码错误，请检查后重试。';
+        } else if (message.includes('network') || message.includes('fetch')) {
+          errorMessage = '网络连接失败，请检查网络后重试';
+        } else if (message.includes('server') || message.includes('internal')) {
+          errorMessage = '服务器暂时不可用，请稍后重试';
+        }
+      }
+      
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }

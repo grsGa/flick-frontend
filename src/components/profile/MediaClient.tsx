@@ -1,22 +1,22 @@
 'use client';
 
 import React from 'react';
-import { useUserMedia } from '@/hooks/useTweets';
+import { useUserMedia } from '@/hooks/usePosts';
 import InfiniteScrollList from './InfiniteScrollList';
-import { Tweet, PageInfo } from '@/graphql/types';
+import { Post, PageInfo } from '@/graphql/types';
 
 interface MediaClientProps {
   userId: string;
-  initialTweets: Tweet[];
+  initialPosts: Post[];
   initialPageInfo: PageInfo;
 }
 
 const MediaClient: React.FC<MediaClientProps> = ({
   userId,
-  initialTweets,
+  initialPosts,
   initialPageInfo,
 }) => {
-  const { tweets, pageInfo, fetchMore } = useUserMedia(userId);
+  const { posts, pageInfo, fetchMore } = useUserMedia(userId);
   const [hasMore, setHasMore] = React.useState(initialPageInfo.hasNextPage);
 
   const loadMore = async () => {
@@ -31,10 +31,10 @@ const MediaClient: React.FC<MediaClientProps> = ({
 
   return (
     <InfiniteScrollList
-      initialItems={initialTweets}
+      initialItems={initialPosts}
       fetchMore={loadMore}
       hasMore={hasMore}
-      itemType="tweet"
+      itemType="post"
     />
   );
 };

@@ -2,18 +2,18 @@
 
 import React from 'react';
 import InfiniteScroll from 'react-infinite-scroll-component';
-import { User, Tweet } from '@/graphql/types';
+import { User, Post } from '@/graphql/types';
 import UserCard from '@/components/user/UserCard';
-import TweetCard from '@/components/tweet/TweetCard';
+import PostCard from '@/components/post/PostCard';
 import { Spinner } from '@/components/core/Spinner';
 
-type ListItem = User | Tweet;
+type ListItem = User | Post;
 
 interface InfiniteScrollListProps {
   initialItems: ListItem[];
   fetchMore: () => Promise<ListItem[]>;
   hasMore: boolean;
-  itemType: 'user' | 'tweet';
+  itemType: 'user' | 'post';
 }
 
 const InfiniteScrollList: React.FC<InfiniteScrollListProps> = ({
@@ -22,19 +22,44 @@ const InfiniteScrollList: React.FC<InfiniteScrollListProps> = ({
   hasMore,
   itemType,
 }) => {
+  console.log('[InfiniteScrollList] Component initialized:', {
+    initialItemsLength: initialItems.length,
+    hasMore,
+    itemType
+  });
+  
   const [items, setItems] = React.useState<ListItem[]>(initialItems);
 
+  // 监听 initialItems 变化，确保组件能响应新数据
+  React.useEffect(() => {
+    console.log('[InfiniteScrollList] initialItems changed:', {
+      newLength: initialItems.length,
+      currentLength: items.length
+    });
+    setItems(initialItems);
+  }, [initialItems]);
+
   const loadMore = async () => {
-    const newItems = await fetchMore();
-    setItems(prevItems => [...prevItems, ...newItems]);
+    console.log('[InfiniteScrollList] loadMore called, current items:', items.length);
+    try {
+      const newItems = await fetchMore();
+      console.log('[InfiniteScrollList] fetchMore returned:', newItems.length, 'new items');
+      setItems(prevItems => {
+        const updated = [...prevItems, ...newItems];
+        console.log('[InfiniteScrollList] Updated items count:', updated.length);
+        return updated;
+      });
+    } catch (error) {
+      console.error('[InfiniteScrollList] loadMore failed:', error);
+    }
   };
 
   const renderItem = (item: ListItem) => {
     if (itemType === 'user') {
       return <UserCard key={(item as User).id} user={item as User} />;
     }
-    if (itemType === 'tweet') {
-      return <TweetCard key={(item as Tweet).id} tweet={item as Tweet} />;
+    if (itemType === 'post') {
+      return <PostCard key={(item as Post).id} post={item as Post} />;
     }
     return null;
   };

@@ -1,8 +1,8 @@
 import { redirect } from 'next/navigation';
 
 // This page is responsible for redirecting the base profile URL
-// to the default "tweets" tab.
+// to the default "posts" tab.
 export default async function ProfilePage({ params }: { params: Promise<{ username: string }> }) {
   const { username } = await params;
-  redirect(`/profile/${username}/tweets`);
+  redirect(`/profile/${username}/posts`);
 }

@@ -13,11 +13,11 @@ enum NotificationType {
   LIKE
   COMMENT
   FOLLOW
-  RETWEET
+  REPOST
   BOOKMARK
 }
 
-union NotificationEntity = Tweet | Comment | User
+union NotificationEntity = Post | Comment | User
 
 type NotificationEdge {
   node: Notification!

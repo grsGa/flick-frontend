@@ -2,7 +2,7 @@ import React from 'react';
 import { notFound } from 'next/navigation';
 import client from '@/lib/apollo-client';
 import { gql } from '@apollo/client';
-import { User, PageInfo, Tweet } from '@/graphql/types';
+import { User, PageInfo, Post } from '@/graphql/types';
 import RepliesClient from '@/components/profile/RepliesClient';
 import ProfileTabs from '@/components/profile/ProfileTabs';
 
@@ -38,10 +38,10 @@ const GET_USER_REPLIES = gql`
           interaction {
             isLiked
             isBookmarked
-            isRetweeted
+            isReposted
             likeCount
             commentCount
-            retweetCount
+            repostCount
           }
         }
       }
@@ -72,7 +72,7 @@ async function getRepliesPageData(username: string) {
 
     return {
       user,
-      tweets: repliesResult.data.userReplies.edges.map((edge: any) => edge.node),
+      posts: repliesResult.data.userReplies.edges.map((edge: any) => edge.node),
       pageInfo: repliesResult.data.userReplies.pageInfo,
     };
   } catch (error) {
@@ -89,12 +89,12 @@ export default async function RepliesPage({ params }: { params: Promise<{ userna
     notFound();
   }
 
-  const { user, tweets, pageInfo } = data;
+  const { user, posts, pageInfo } = data;
 
   return (
     <RepliesClient
       userId={user.id}
-      initialTweets={tweets}
+      initialPosts={posts}
       initialPageInfo={pageInfo}
     />
   );

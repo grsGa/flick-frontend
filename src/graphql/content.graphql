@@ -1,6 +1,6 @@
 # Content related GraphQL types
 
-type Tweet {
+type Post {
   id: ID!
   content: String!
   author: User!
@@ -18,7 +18,7 @@ type Comment {
   interaction: Interaction!
 }
 
-input CreateTweetInput {
+input CreatePostInput {
   content: String!
   mediaIds: [ID!]
   replyTo: ID
@@ -26,7 +26,7 @@ input CreateTweetInput {
 
 input CreateCommentInput {
   content: String!
-  tweetId: ID!
+  postId: ID!
 }
 
 type Media {
@@ -45,13 +45,13 @@ type PageInfo {
   endCursor: String
 }
 
-type TweetEdge {
-  node: Tweet!
+type PostEdge {
+  node: Post!
   cursor: String!
 }
 
-type TweetConnection {
-  edges: [TweetEdge!]!
+type PostConnection {
+  edges: [PostEdge!]!
   pageInfo: PageInfo!
 }
 

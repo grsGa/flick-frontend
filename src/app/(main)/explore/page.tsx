@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import MainContainer from '@/components/layout/MainContainer';
-import TweetCard from '@/components/tweet/TweetCard';
+import PostCard from '@/components/post/PostCard';
 
 export default function Explore() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -15,9 +15,9 @@ export default function Explore() {
 
   // 模拟数据
   const trendingTopics = [
-    { id: 1, name: '技术', tweetCount: '10.2万' },
-    { id: 2, name: '设计', tweetCount: '8.5万' },
-    { id: 3, name: '开发', tweetCount: '15.7万' },
+    { id: 1, name: '技术', postCount: '10.2万' },
+    { id: 2, name: '设计', postCount: '8.5万' },
+    { id: 3, name: '开发', postCount: '15.7万' },
   ];
 
   return (
@@ -46,7 +46,7 @@ export default function Explore() {
             <div key={topic.id} className="hover:bg-gray-50 p-2 rounded cursor-pointer">
               <div className="text-gray-500 text-sm">趋势</div>
               <div className="font-bold">#{topic.name}</div>
-              <div className="text-gray-500 text-sm">{topic.tweetCount} posts</div>
+              <div className="text-gray-500 text-sm">{topic.postCount} posts</div>
             </div>
           ))}
         </div>

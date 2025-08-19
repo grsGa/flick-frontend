@@ -1,31 +1,31 @@
 import React from 'react';
-import { Tweet } from '@/graphql/types';
+import { Post } from '@/graphql/types';
 import Avatar from '@/components/core/Avatar';
 import UserName from '@/components/core/UserName';
 import TimeAgo from '@/components/core/TimeAgo';
 import MediaGrid from '@/components/media/MediaGrid';
-import TweetActions from '@/components/tweet/TweetActions';
+import PostActions from '@/components/post/PostActions';
 
-interface TweetCardProps {
-  tweet: Tweet;
-  onLike?: (tweetId: string) => void;
-  onBookmark?: (tweetId: string) => void;
-  onRetweet?: (tweetId: string) => void;
-  onComment?: (tweetId: string) => void;
+interface PostCardProps {
+  post: Post;
+  onLike?: (postId: string) => void;
+  onBookmark?: (postId: string) => void;
+  onRepost?: (postId: string) => void;
+  onComment?: (postId: string) => void;
   className?: string;
 }
 
-const TweetCard: React.FC<TweetCardProps> = ({
-  tweet,
+const PostCard: React.FC<PostCardProps> = ({
+  post,
   onLike,
   onBookmark,
-  onRetweet,
+  onRepost,
   onComment,
   className = '',
 }) => {
   const handleUserClick = () => {
     // Navigate to user profile
-    window.location.href = `/profile/${tweet.author.username}`;
+    window.location.href = `/profile/${post.author.username}`;
   };
 
   return (
@@ -34,46 +34,46 @@ const TweetCard: React.FC<TweetCardProps> = ({
         {/* User avatar */}
         <div className="flex-shrink-0 mr-3">
           <Avatar
-            src={tweet.author.avatarUrl}
-            alt={tweet.author.displayName || tweet.author.username}
+            src={post.author.avatarUrl}
+            alt={post.author.displayName || post.author.username}
             size="md"
             onClick={handleUserClick}
           />
         </div>
 
-        {/* Tweet content */}
+        {/* Post content */}
         <div className="flex-grow">
           {/* User info and timestamp */}
           <div className="flex items-center">
             <UserName 
-              user={tweet.author} 
-              verified={tweet.author.isVerified}
+              user={post.author} 
+              verified={post.author.isVerified}
               onClick={handleUserClick}
             />
             <span className="mx-1 text-gray-500">·</span>
-            <TimeAgo date={tweet.createdAt} />
+            <TimeAgo date={post.createdAt} />
           </div>
 
-          {/* Tweet text */}
+          {/* Post text */}
           <div className="mt-1 mb-2">
-            <p className="text-gray-900">{tweet.content}</p>
+            <p className="text-gray-900">{post.content}</p>
           </div>
 
           {/* Media */}
-          {tweet.media.length > 0 && (
+          {post.media.length > 0 && (
             <div className="mb-2">
-              <MediaGrid media={tweet.media} />
+              <MediaGrid media={post.media} />
             </div>
           )}
 
-          {/* Tweet actions */}
+          {/* Post actions */}
           <div className="mt-2">
-            <TweetActions
-              interaction={tweet.interaction}
-              onLike={() => onLike?.(tweet.id)}
-              onBookmark={() => onBookmark?.(tweet.id)}
-              onRetweet={() => onRetweet?.(tweet.id)}
-              onComment={() => onComment?.(tweet.id)}
+            <PostActions
+              interaction={post.interaction}
+              onLike={() => onLike?.(post.id)}
+              onBookmark={() => onBookmark?.(post.id)}
+              onRepost={() => onRepost?.(post.id)}
+              onComment={() => onComment?.(post.id)}
             />
           </div>
         </div>
@@ -82,4 +82,4 @@ const TweetCard: React.FC<TweetCardProps> = ({
   );
 };
 
-export default TweetCard;
+export default PostCard;

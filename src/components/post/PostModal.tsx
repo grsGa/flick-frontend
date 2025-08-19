@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom';
 import Avatar from '@/components/core/Avatar';
 import EmojiPicker, { EmojiClickData } from 'emoji-picker-react';
 import { useAuth } from '@/hooks/useAuth';
+import { useCreatePost } from '@/hooks/usePosts';
 import GifPicker from './GifPicker';
 
 interface PostModalProps {
@@ -13,7 +14,12 @@ interface PostModalProps {
 }
 
 const PostModal: React.FC<PostModalProps> = ({ isOpen, onClose }) => {
+  console.log('[PostModal] Component rendered, isOpen:', isOpen);
+  
   const { user } = useAuth();
+  const { createPost, loading: postLoading, error: postError } = useCreatePost();
+  
+  console.log('[PostModal] useCreatePost hook result:', { createPost: !!createPost, postLoading, postError });
   const [content, setContent] = useState('');
   const [selectedGif, setSelectedGif] = useState<string | null>(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
@@ -218,25 +224,62 @@ const PostModal: React.FC<PostModalProps> = ({ isOpen, onClose }) => {
     });
   };
 
-  const handlePost = () => {
+  const handlePost = async () => {
     if (content.trim() || selectedGif || selectedImages.length > 0 || pollData) {
-      // TODO: Implement post submission logic
-      console.log('Posting:', { 
+      console.log('[PostModal] Starting post submission:', { 
         content, 
         gif: selectedGif, 
         images: selectedImages,
         poll: pollData
       });
       
-      // Cleanup
-      setContent('');
-      setSelectedGif(null);
-      imagePreviewUrls.forEach(url => URL.revokeObjectURL(url));
-      setSelectedImages([]);
-      setImagePreviewUrls([]);
-      setPollData(null);
-      setShowPollEditor(false);
-      onClose();
+      try {
+        // Build input data for GraphQL mutation
+        const inputData: any = {
+          content: content.trim(),
+        };
+
+        // Add reply permission if not default
+        if (replyPermission !== 'EVERYONE') {
+          inputData.replyPermission = replyPermission;
+        }
+
+        // TODO: Handle media uploads and poll data in future iterations
+        if (selectedGif) {
+          console.log('[PostModal] GIF support not yet implemented');
+        }
+        if (selectedImages.length > 0) {
+          console.log('[PostModal] Image upload support not yet implemented');
+        }
+        if (pollData) {
+          console.log('[PostModal] Poll support not yet implemented');
+        }
+
+        console.log('[PostModal] Calling createPost with input:', inputData);
+        
+        const result = await createPost({
+          variables: {
+            input: inputData,
+          },
+        });
+
+        console.log('[PostModal] Post created successfully:', result);
+        
+        // Cleanup on success
+        setContent('');
+        setSelectedGif(null);
+        imagePreviewUrls.forEach(url => URL.revokeObjectURL(url));
+        setSelectedImages([]);
+        setImagePreviewUrls([]);
+        setPollData(null);
+        setShowPollEditor(false);
+        setReplyPermission('EVERYONE');
+        onClose();
+        
+      } catch (err: any) {
+        console.error('[PostModal] Failed to create post:', err);
+        // Don't close modal on error so user can retry
+      }
     }
   };
 
@@ -691,15 +734,15 @@ const PostModal: React.FC<PostModalProps> = ({ isOpen, onClose }) => {
           {/* Post Button */}
           <button
             onClick={handlePost}
-            disabled={(!content.trim() && !selectedGif && selectedImages.length === 0 && !pollData) || content.length > maxLength}
+            disabled={postLoading || (!content.trim() && !selectedGif && selectedImages.length === 0 && !pollData) || content.length > maxLength}
             className={`px-6 py-2 rounded-full font-bold text-sm transition-colors ${
-              (content.trim() || selectedGif || selectedImages.length > 0 || pollData) && content.length <= maxLength
+              (content.trim() || selectedGif || selectedImages.length > 0 || pollData) && content.length <= maxLength && !postLoading
                 ? 'bg-black text-white hover:bg-gray-800'
                 : 'bg-gray-300 text-gray-500 cursor-not-allowed'
             }`}
             title="Post"
           >
-            Post
+            {postLoading ? 'Posting...' : 'Post'}
           </button>
         </div>
       </div>

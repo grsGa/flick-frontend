@@ -13,7 +13,21 @@ const NOTIFICATIONS_QUERY = gql`
             displayName
             avatarUrl
           }
-          entity
+          entity {
+            ... on Post {
+              id
+              content
+            }
+            ... on Comment {
+              id
+              content
+            }
+            ... on User {
+              id
+              username
+              displayName
+            }
+          }
           read
           createdAt
         }

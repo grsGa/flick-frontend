@@ -3,9 +3,9 @@
 type Query {
   health: String
   userByUsername(username: String!): User
-  tweet(id: ID!): Tweet
-  userTweets(username: String!, first: Int!, after: String): TweetConnection
-  homeFeed(first: Int!, after: String): TweetConnection
+  post(id: ID!): Post
+  userPosts(username: String!, first: Int!, after: String): PostConnection
+  homeFeed(first: Int!, after: String): PostConnection
   notifications(first: Int!, after: String): NotificationConnection
   conversations: [Conversation!]!
   conversation(id: ID!): Conversation
@@ -13,12 +13,12 @@ type Query {
   search(input: SearchInput!): SearchResults
   trendingHashtags(first: Int!): [Hashtag!]!
   recommendedUsers(first: Int!): [User!]!
-  recommendedTweets(first: Int!): TweetConnection
+  recommendedPosts(first: Int!): PostConnection
   followers(userId: ID!, first: Int!, after: String): UserConnection
   following(userId: ID!, first: Int!, after: String): UserConnection
-  userReplies(userId: ID!, first: Int!, after: String): TweetConnection
-  userMedia(userId: ID!, first: Int!, after: String): TweetConnection
-  userLikes(userId: ID!, first: Int!, after: String): TweetConnection
+  userReplies(userId: ID!, first: Int!, after: String): PostConnection
+  userMedia(userId: ID!, first: Int!, after: String): PostConnection
+  userLikes(userId: ID!, first: Int!, after: String): PostConnection
 }
 
 type Mutation {
@@ -27,16 +27,16 @@ type Mutation {
   register(input: RegisterInput!): AuthPayload!
   
   # Content mutations
-  createTweet(input: CreateTweetInput!): Tweet!
+  createPost(input: CreatePostInput!): Post!
   createComment(input: CreateCommentInput!): Comment!
   
   # Interaction mutations
-  likeTweet(input: LikeTweetInput!): Interaction!
-  unlikeTweet(input: LikeTweetInput!): Interaction!
-  bookmarkTweet(input: BookmarkTweetInput!): Interaction!
-  unbookmarkTweet(input: BookmarkTweetInput!): Interaction!
-  retweet(input: RetweetInput!): Interaction!
-  undoRetweet(input: RetweetInput!): Interaction!
+  likePost(input: LikePostInput!): Interaction!
+  unlikePost(input: LikePostInput!): Interaction!
+  bookmarkPost(input: BookmarkPostInput!): Interaction!
+  unbookmarkPost(input: BookmarkPostInput!): Interaction!
+  repost(input: RepostInput!): Interaction!
+  undoRepost(input: RepostInput!): Interaction!
   
   # Notification mutations
   markNotificationAsRead(id: ID!): Notification!

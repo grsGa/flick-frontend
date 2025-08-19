@@ -17,7 +17,7 @@ const MediaGrid: React.FC<MediaGridProps> = ({ media, className = '' }) => {
         {item.type === MediaType.IMAGE ? (
           <img 
             src={item.url} 
-            alt="Tweet media"
+            alt="Post media"
             className="w-full h-auto object-cover max-h-96"
           />
         ) : (
@@ -52,7 +52,7 @@ const MediaGrid: React.FC<MediaGridProps> = ({ media, className = '' }) => {
           {item.type === MediaType.IMAGE ? (
             <img 
               src={item.url} 
-              alt={`Tweet media ${index + 1}`}
+              alt={`Post media ${index + 1}`}
               className="w-full h-full object-cover"
             />
           ) : (

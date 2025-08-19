@@ -4,7 +4,7 @@ import Avatar from '@/components/core/Avatar';
 import MediaPreview from '@/components/media/MediaPreview';
 import { validateMediaFile, compressImage } from '@/lib/media';
 
-interface TweetEditorProps {
+interface PostEditorProps {
   onSubmit: (content: string, mediaIds?: string[]) => void;
   onCancel?: () => void;
   placeholder?: string;
@@ -12,7 +12,7 @@ interface TweetEditorProps {
   initialState?: ComposeState;
 }
 
-const TweetEditor: React.FC<TweetEditorProps> = ({
+const PostEditor: React.FC<PostEditorProps> = ({
   onSubmit,
   onCancel,
   placeholder = "有什么新鲜事？",
@@ -82,24 +82,33 @@ const TweetEditor: React.FC<TweetEditorProps> = ({
   };
 
   const handleSubmit = async () => {
+    console.log('[PostEditor] handleSubmit called');
+    console.log('[PostEditor] State:', { content: state.content, mediaCount: state.media.length });
+    console.log('[PostEditor] isSubmitting:', isSubmitting);
+    
     if ((!state.content.trim() && state.media.length === 0) || isSubmitting) {
+      console.log('[PostEditor] Submit blocked - no content or already submitting');
       return;
     }
 
+    console.log('[PostEditor] Starting submission process');
     setIsSubmitting(true);
     
     try {
-      // In a real implementation, we would upload media files first and get their IDs
-      // For now, we'll just pass the state to the onSubmit function
-      const mediaIds = state.media.map((_, index) => `media-${index}`);
-      onSubmit(state.content, mediaIds);
+      // 暂时只支持纯文本发帖，媒体功能待实现
+      const mediaUrls = state.media.length > 0 ? [] : undefined; // 暂时忽略媒体
+      console.log('[PostEditor] Calling onSubmit with:', { content: state.content, mediaUrls });
       
+      await onSubmit(state.content, mediaUrls);
+      
+      console.log('[PostEditor] onSubmit completed successfully');
       // Reset form
       setState({ content: '', media: [] });
     } catch (error) {
-      console.error('Error submitting tweet:', error);
+      console.error('[PostEditor] Error submitting post:', error);
       alert('发布失败，请重试');
     } finally {
+      console.log('[PostEditor] Setting isSubmitting to false');
       setIsSubmitting(false);
     }
   };
@@ -186,4 +195,4 @@ const TweetEditor: React.FC<TweetEditorProps> = ({
   );
 };
 
-export default TweetEditor;
+export default PostEditor;

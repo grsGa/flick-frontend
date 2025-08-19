@@ -1,22 +1,22 @@
 'use client';
 
 import React from 'react';
-import { useUserReplies } from '@/hooks/useTweets';
+import { useUserReplies } from '@/hooks/usePosts';
 import InfiniteScrollList from './InfiniteScrollList';
-import { Tweet, PageInfo } from '@/graphql/types';
+import { Post, PageInfo } from '@/graphql/types';
 
 interface RepliesClientProps {
   userId: string;
-  initialTweets: Tweet[];
+  initialPosts: Post[];
   initialPageInfo: PageInfo;
 }
 
 const RepliesClient: React.FC<RepliesClientProps> = ({
   userId,
-  initialTweets,
+  initialPosts,
   initialPageInfo,
 }) => {
-  const { tweets, pageInfo, fetchMore } = useUserReplies(userId);
+  const { posts, pageInfo, fetchMore } = useUserReplies(userId);
   const [hasMore, setHasMore] = React.useState(initialPageInfo.hasNextPage);
 
   const loadMore = async () => {
@@ -31,10 +31,10 @@ const RepliesClient: React.FC<RepliesClientProps> = ({
 
   return (
     <InfiniteScrollList
-      initialItems={initialTweets}
+      initialItems={initialPosts}
       fetchMore={loadMore}
       hasMore={hasMore}
-      itemType="tweet"
+      itemType="post"
     />
   );
 };

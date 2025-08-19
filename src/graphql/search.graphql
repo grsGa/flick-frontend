@@ -1,7 +1,7 @@
 # Search related GraphQL types
 
 type SearchResults {
-  tweets: TweetConnection
+  posts: PostConnection
   users: UserConnection
   hashtags: HashtagConnection
 }
@@ -9,7 +9,7 @@ type SearchResults {
 type Hashtag {
   id: ID!
   name: String!
-  tweetCount: Int!
+  postCount: Int!
 }
 
 type UserConnection {
@@ -40,7 +40,7 @@ input SearchInput {
 }
 
 enum SearchType {
-  TWEET
+  POST
   USER
   HASHTAG
 }

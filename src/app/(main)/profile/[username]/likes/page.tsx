@@ -2,7 +2,7 @@ import React from 'react';
 import { notFound } from 'next/navigation';
 import client from '@/lib/apollo-client';
 import { gql } from '@apollo/client';
-import { User, PageInfo, Tweet } from '@/graphql/types';
+import { User, PageInfo, Post } from '@/graphql/types';
 import LikesClient from '@/components/profile/LikesClient';
 import ProfileTabs from '@/components/profile/ProfileTabs';
 
@@ -38,10 +38,10 @@ const GET_USER_LIKES = gql`
           interaction {
             isLiked
             isBookmarked
-            isRetweeted
+            isReposted
             likeCount
             commentCount
-            retweetCount
+            repostCount
           }
         }
       }
@@ -72,7 +72,7 @@ async function getLikesPageData(username: string) {
 
     return {
       user,
-      tweets: likesResult.data.userLikes.edges.map((edge: any) => edge.node),
+      posts: likesResult.data.userLikes.edges.map((edge: any) => edge.node),
       pageInfo: likesResult.data.userLikes.pageInfo,
     };
   } catch (error) {
@@ -89,12 +89,12 @@ export default async function LikesPage({ params }: { params: Promise<{ username
     notFound();
   }
 
-  const { user, tweets, pageInfo } = data;
+  const { user, posts, pageInfo } = data;
 
   return (
     <LikesClient
       userId={user.id}
-      initialTweets={tweets}
+      initialPosts={posts}
       initialPageInfo={pageInfo}
     />
   );

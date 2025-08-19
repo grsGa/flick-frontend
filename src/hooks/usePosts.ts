@@ -1,8 +1,8 @@
-import { useQuery, useMutation, gql } from '@apollo/client';
-import { Tweet } from '@/graphql/types';
+import { useQuery, useMutation, useApolloClient } from '@apollo/client';
+import { gql } from '@apollo/client';
 
 // GraphQL queries and mutations
-const HOME_FEED_QUERY = gql`
+export const HOME_FEED_QUERY = gql`
   query HomeFeed($first: Int!, $after: String) {
     homeFeed(first: $first, after: $after) {
       edges {
@@ -25,10 +25,10 @@ const HOME_FEED_QUERY = gql`
           interaction {
             isLiked
             isBookmarked
-            isRetweeted
+            isReposted
             likeCount
             commentCount
-            retweetCount
+            repostCount
           }
         }
       }
@@ -40,9 +40,9 @@ const HOME_FEED_QUERY = gql`
   }
 `;
 
-const USER_TWEETS_QUERY = gql`
-  query UserTweets($username: String!, $first: Int!, $after: String) {
-    userTweets(username: $username, first: $first, after: $after) {
+export const USER_POSTS_QUERY = gql`
+  query UserPosts($username: String!, $first: Int!, $after: String) {
+    userPosts(username: $username, first: $first, after: $after) {
       edges {
         node {
           id
@@ -63,10 +63,10 @@ const USER_TWEETS_QUERY = gql`
           interaction {
             isLiked
             isBookmarked
-            isRetweeted
+            isReposted
             likeCount
             commentCount
-            retweetCount
+            repostCount
           }
         }
       }
@@ -78,12 +78,17 @@ const USER_TWEETS_QUERY = gql`
   }
 `;
 
-const CREATE_TWEET_MUTATION = gql`
-  mutation CreateTweet($input: CreateTweetInput!) {
-    createTweet(input: $input) {
+const CREATE_POST_MUTATION = gql`
+  mutation CreatePost($input: CreatePostInput!) {
+    createPost(input: $input) {
       id
       content
       createdAt
+      updatedAt
+      visibility
+      replyPermission
+      hasMedia
+      hasPoll
       author {
         id
         username
@@ -99,18 +104,20 @@ const CREATE_TWEET_MUTATION = gql`
       interaction {
         isLiked
         isBookmarked
-        isRetweeted
+        isReposted
         likeCount
         commentCount
-        retweetCount
+        repostCount
       }
+      tags
+      mentionedUsers
     }
   }
 `;
 
-const LIKE_TWEET_MUTATION = gql`
-  mutation LikeTweet($input: LikeTweetInput!) {
-    likeTweet(input: $input) {
+const LIKE_POST_MUTATION = gql`
+  mutation LikePost($input: LikePostInput!) {
+    likePost(input: $input) {
       isLiked
       likeCount
     }
@@ -120,10 +127,12 @@ const LIKE_TWEET_MUTATION = gql`
 export function useHomeFeed(first: number = 10, after?: string) {
   const { data, loading, error, fetchMore } = useQuery(HOME_FEED_QUERY, {
     variables: { first, after },
+    fetchPolicy: 'cache-and-network', // 总是从网络获取最新数据
+    notifyOnNetworkStatusChange: true,
   });
 
   return {
-    tweets: data?.homeFeed?.edges?.map((edge: any) => edge.node) || [],
+    posts: data?.homeFeed?.edges?.map((edge: any) => edge.node) || [],
     pageInfo: data?.homeFeed?.pageInfo,
     loading,
     error,
@@ -131,40 +140,99 @@ export function useHomeFeed(first: number = 10, after?: string) {
   };
 }
 
-export function useUserTweets(username: string, first: number = 10, after?: string) {
-  const { data, loading, error, fetchMore } = useQuery(USER_TWEETS_QUERY, {
+export function useUserPosts(username: string, first: number = 10, after?: string) {
+  const { data, loading, error, fetchMore, refetch } = useQuery(USER_POSTS_QUERY, {
     variables: { username, first, after },
+    fetchPolicy: 'cache-and-network', // 总是从网络获取最新数据
+    notifyOnNetworkStatusChange: true,
+    errorPolicy: 'all', // 即使有错误也返回部分数据
+    // 确保查询在用户名变化时重新执行
+    skip: !username,
   });
 
   return {
-    tweets: data?.userTweets?.edges?.map((edge: any) => edge.node) || [],
-    pageInfo: data?.userTweets?.pageInfo,
+    posts: data?.userPosts?.edges?.map((edge: any) => edge.node) || [],
+    pageInfo: data?.userPosts?.pageInfo,
     loading,
     error,
     fetchMore,
+    refetch, // 暴露refetch方法供外部调用
   };
 }
 
-export function useCreateTweet() {
-  const [createTweet, { loading, error }] = useMutation(CREATE_TWEET_MUTATION, {
-    update(cache, { data: { createTweet } }) {
-      // Update cache with new tweet
-      // This would be more complex in a real implementation
+export function useCreatePost() {
+  const client = useApolloClient();
+  
+  console.log('[useCreatePost] Hook initialized');
+  
+  const [createPost, { loading, error }] = useMutation(CREATE_POST_MUTATION, {
+    onCompleted: async (data) => {
+      console.log('[useCreatePost] onCompleted callback triggered with data:', data);
+      
+      const username = data?.createPost?.author?.username;
+      if (!username) {
+        console.error('[useCreatePost] No username found in response');
+        return;
+      }
+
+      try {
+        console.log('[useCreatePost] Starting simplified cache update for username:', username);
+        
+        // 修复策略: 分别为不同查询使用正确的variables
+        await Promise.all([
+          // 刷新首页时间线 - 不需要username参数
+          client.refetchQueries({
+            include: [HOME_FEED_QUERY],
+            variables: { first: 10, after: null }
+          }),
+          // 刷新用户帖子列表 - 需要username参数
+          client.refetchQueries({
+            include: [USER_POSTS_QUERY],
+            variables: { username, first: 10, after: null }
+          })
+        ]);
+        
+        console.log('[useCreatePost] Cache refetch completed successfully');
+
+      } catch (error) {
+        console.error('[useCreatePost] Cache update failed:', error);
+        
+        // 简化的备用策略：只清除相关字段
+        client.cache.evict({ fieldName: 'homeFeed' });
+        client.cache.evict({ fieldName: 'userPosts' });
+        client.cache.gc();
+        console.log('[useCreatePost] Cache eviction completed');
+      }
+    },
+    onError: (error) => {
+      console.error('[useCreatePost] onError callback triggered:', error);
     }
   });
 
+  const wrappedCreatePost = async (options: any) => {
+    console.log('[useCreatePost] wrappedCreatePost called with options:', options);
+    try {
+      const result = await createPost(options);
+      console.log('[useCreatePost] createPost returned result:', result);
+      return result;
+    } catch (error) {
+      console.error('[useCreatePost] createPost threw error:', error);
+      throw error;
+    }
+  };
+
   return {
-    createTweet,
+    createPost: wrappedCreatePost,
     loading,
     error,
   };
 }
 
-export function useLikeTweet() {
-  const [likeTweet, { loading, error }] = useMutation(LIKE_TWEET_MUTATION);
+export function useLikePost() {
+  const [likePost, { loading, error }] = useMutation(LIKE_POST_MUTATION);
 
   return {
-    likeTweet,
+    likePost,
     loading,
     error,
   };
@@ -193,10 +261,10 @@ const USER_REPLIES_QUERY = gql`
           interaction {
             isLiked
             isBookmarked
-            isRetweeted
+            isReposted
             likeCount
             commentCount
-            retweetCount
+            repostCount
           }
         }
       }
@@ -215,7 +283,7 @@ export function useUserReplies(userId: string, first: number = 10) {
   });
 
   return {
-    tweets: data?.userReplies?.edges?.map((edge: any) => edge.node) || [],
+    posts: data?.userReplies?.edges?.map((edge: any) => edge.node) || [],
     pageInfo: data?.userReplies?.pageInfo,
     loading,
     error,
@@ -246,10 +314,10 @@ const USER_MEDIA_QUERY = gql`
           interaction {
             isLiked
             isBookmarked
-            isRetweeted
+            isReposted
             likeCount
             commentCount
-            retweetCount
+            repostCount
           }
         }
       }
@@ -268,7 +336,7 @@ export function useUserMedia(userId: string, first: number = 10) {
   });
 
   return {
-    tweets: data?.userMedia?.edges?.map((edge: any) => edge.node) || [],
+    posts: data?.userMedia?.edges?.map((edge: any) => edge.node) || [],
     pageInfo: data?.userMedia?.pageInfo,
     loading,
     error,
@@ -299,10 +367,10 @@ const USER_LIKES_QUERY = gql`
           interaction {
             isLiked
             isBookmarked
-            isRetweeted
+            isReposted
             likeCount
             commentCount
-            retweetCount
+            repostCount
           }
         }
       }
@@ -321,7 +389,7 @@ export function useUserLikes(userId: string, first: number = 10) {
   });
 
   return {
-    tweets: data?.userLikes?.edges?.map((edge: any) => edge.node) || [],
+    posts: data?.userLikes?.edges?.map((edge: any) => edge.node) || [],
     pageInfo: data?.userLikes?.pageInfo,
     loading,
     error,

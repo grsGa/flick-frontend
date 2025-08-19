@@ -9,8 +9,8 @@ type Recommendation {
 
 enum RecommendationType {
   USER
-  TWEET
+  POST
   HASHTAG
 }
 
-union RecommendationEntity = User | Tweet | Hashtag
+union RecommendationEntity = User | Post | Hashtag

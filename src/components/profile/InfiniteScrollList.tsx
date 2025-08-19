@@ -14,6 +14,7 @@ interface InfiniteScrollListProps {
   fetchMore: () => Promise<ListItem[]>;
   hasMore: boolean;
   itemType: 'user' | 'post';
+  onLike?: (postId: string) => void;
 }
 
 const InfiniteScrollList: React.FC<InfiniteScrollListProps> = ({
@@ -21,6 +22,7 @@ const InfiniteScrollList: React.FC<InfiniteScrollListProps> = ({
   fetchMore,
   hasMore,
   itemType,
+  onLike,
 }) => {
   console.log('[InfiniteScrollList] Component initialized:', {
     initialItemsLength: initialItems.length,
@@ -59,7 +61,13 @@ const InfiniteScrollList: React.FC<InfiniteScrollListProps> = ({
       return <UserCard key={(item as User).id} user={item as User} />;
     }
     if (itemType === 'post') {
-      return <PostCard key={(item as Post).id} post={item as Post} />;
+      return (
+        <PostCard 
+          key={(item as Post).id} 
+          post={item as Post} 
+          onLike={onLike ? () => onLike((item as Post).id) : undefined}
+        />
+      );
     }
     return null;
   };

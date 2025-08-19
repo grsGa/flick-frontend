@@ -11,7 +11,7 @@ async function getPostsPageData(username: string) {
     const { data } = await client.query({
       query: USER_POSTS_QUERY,
       variables: { username, first: 10 },
-      fetchPolicy: 'cache-first', // 使用缓存优先策略，确保SSR数据被缓存
+      fetchPolicy: 'network-only', // 使用网络优先策略，确保获取最新数据
       errorPolicy: 'all',
     });
     

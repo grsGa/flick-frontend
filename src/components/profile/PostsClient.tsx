@@ -45,10 +45,18 @@ const PostsClient: React.FC<PostsClientProps> = ({
 
   // 监听页面信息变化
   useEffect(() => {
+    console.log('[PostsClient] PageInfo changed:', { 
+      hasNextPage: pageInfo?.hasNextPage, 
+      endCursor: pageInfo?.endCursor,
+      initialHasNextPage: initialPageInfo.hasNextPage 
+    });
     if (pageInfo) {
       setHasMore(pageInfo.hasNextPage);
+    } else {
+      // 如果没有pageInfo，使用初始pageInfo
+      setHasMore(initialPageInfo.hasNextPage);
     }
-  }, [pageInfo?.hasNextPage]);
+  }, [pageInfo?.hasNextPage, initialPageInfo.hasNextPage]);
 
   const displayPageInfo = pageInfo || initialPageInfo;
 
@@ -65,7 +73,13 @@ const PostsClient: React.FC<PostsClientProps> = ({
     }
     
     try {
-      const { data } = await fetchMore({ variables: { after: displayPageInfo.endCursor } });
+      const { data } = await fetchMore({ 
+        variables: { 
+          username,
+          first: 10,
+          after: displayPageInfo.endCursor 
+        } 
+      });
       console.log('[PostsClient] fetchMore result:', {
         newPostsCount: data.userPosts.edges.length,
         hasNextPage: data.userPosts.pageInfo.hasNextPage,

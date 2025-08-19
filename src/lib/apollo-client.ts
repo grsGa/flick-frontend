@@ -112,7 +112,18 @@ const client = new ApolloClient({
             keyArgs: ['username'],
             merge(existing, incoming, { args }) {
               console.log('[Apollo Cache] Merging userPosts:', { existing, incoming, args });
-              return incoming;
+              if (!existing) {
+                return incoming;
+              }
+              if (!args?.after) {
+                // 如果没有after参数，说明是初始查询，直接返回新数据
+                return incoming;
+              }
+              // 合并数据：保留现有edges，追加新的edges
+              return {
+                ...incoming,
+                edges: [...(existing.edges || []), ...(incoming.edges || [])],
+              };
             }
           },
           homeFeed: {

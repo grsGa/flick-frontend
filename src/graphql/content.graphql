@@ -20,7 +20,7 @@ type Comment {
 
 input CreatePostInput {
   content: String!
-  mediaIds: [ID!]
+  mediaUrls: [String!]
   replyTo: ID
 }
 

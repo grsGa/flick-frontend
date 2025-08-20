@@ -18,13 +18,13 @@ const MediaGrid: React.FC<MediaGridProps> = ({ media, className = '' }) => {
           <img 
             src={item.url} 
             alt="Post media"
-            className="w-full h-auto object-cover max-h-96"
+            className="w-full h-auto object-contain"
           />
         ) : (
           <video 
             src={item.url} 
             controls
-            className="w-full h-auto object-cover max-h-96"
+            className="w-full h-auto object-contain max-h-96"
           />
         )}
       </div>

@@ -36,15 +36,24 @@ const PostEditor: React.FC<PostEditorProps> = ({
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
+    console.log('[PostEditor] Files selected:', files?.length || 0);
     if (!files || files.length === 0) return;
 
     const newMedia: MediaFile[] = [];
 
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
+      console.log('[PostEditor] Processing file:', {
+        name: file.name,
+        type: file.type,
+        size: file.size
+      });
+      
       const validation = validateMediaFile(file);
+      console.log('[PostEditor] Validation result:', validation);
       
       if (!validation.valid) {
+        console.error('[PostEditor] File validation failed:', validation.error);
         alert(validation.error);
         continue;
       }
@@ -52,18 +61,30 @@ const PostEditor: React.FC<PostEditorProps> = ({
       // Compress image if needed
       let processedFile = file;
       if (file.type.startsWith('image/')) {
+        console.log('[PostEditor] Compressing image...');
         try {
           processedFile = await compressImage(file);
+          console.log('[PostEditor] Image compressed successfully');
         } catch (error) {
           console.error('Error compressing image:', error);
         }
+      } else if (file.type.startsWith('video/')) {
+        console.log('[PostEditor] Video file detected, no compression needed');
       }
 
-      newMedia.push({
+      const mediaItem = {
         url: URL.createObjectURL(processedFile),
         type: file.type.startsWith('image/') ? 'image' : 'video',
         file: processedFile,
+      };
+      
+      console.log('[PostEditor] Adding media item:', {
+        type: mediaItem.type,
+        url: mediaItem.url,
+        fileName: processedFile.name
       });
+      
+      newMedia.push(mediaItem);
     }
 
     setState(prev => ({
@@ -184,7 +205,7 @@ const PostEditor: React.FC<PostEditorProps> = ({
                 type="file"
                 ref={fileInputRef}
                 onChange={handleFileSelect}
-                accept="image/*,video/*"
+                accept="image/*,video/*,.mp4,.webm,.mov,.avi"
                 multiple
                 className="hidden"
               />

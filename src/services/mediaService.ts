@@ -94,7 +94,9 @@ export class MediaService {
         })
 
         if (!response.ok) {
-          throw new Error(`Upload failed: ${response.statusText}`)
+          const errorData = await response.json().catch(() => ({ error: response.statusText }))
+          const errorMessage = errorData.error || response.statusText
+          throw new Error(errorMessage)
         }
 
         const result = await response.json()

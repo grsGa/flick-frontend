@@ -93,12 +93,13 @@ const PostModal: React.FC<PostModalProps> = ({ isOpen, onClose }) => {
     setSelectedGif(null);
   };
 
-  // Image handling functions
+  // Media handling functions (images and videos)
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
+    console.log('[PostModal] Files selected:', files?.length || 0);
     if (!files) return;
 
-    // Convert FileList to array and limit to 4 images
+    // Convert FileList to array and limit to 4 media files
     const newFiles = Array.from(files).slice(0, 4 - selectedImages.length);
     
     // Check for mutual exclusivity with GIF and Poll
@@ -110,19 +111,36 @@ const PostModal: React.FC<PostModalProps> = ({ isOpen, onClose }) => {
       setShowPollEditor(false);
     }
 
-    // Filter only image files
-    const imageFiles = newFiles.filter(file => 
-      file.type.startsWith('image/') && 
-      ['image/jpeg', 'image/png', 'image/gif', 'image/webp'].includes(file.type)
-    );
+    // Filter image and video files
+    const mediaFiles = newFiles.filter(file => {
+      console.log('[PostModal] Processing file:', {
+        name: file.name,
+        type: file.type,
+        size: file.size
+      });
+      
+      const isImage = file.type.startsWith('image/') && 
+        ['image/jpeg', 'image/png', 'image/gif', 'image/webp'].includes(file.type);
+      const isVideo = file.type.startsWith('video/') && 
+        ['video/mp4', 'video/webm', 'video/quicktime', 'video/x-msvideo'].includes(file.type);
+      
+      const isValid = isImage || isVideo;
+      console.log('[PostModal] File validation:', { isImage, isVideo, isValid });
+      
+      return isValid;
+    });
 
-    if (imageFiles.length > 0) {
-      const updatedImages = [...selectedImages, ...imageFiles].slice(0, 4);
+    console.log('[PostModal] Valid media files:', mediaFiles.length);
+
+    if (mediaFiles.length > 0) {
+      const updatedImages = [...selectedImages, ...mediaFiles].slice(0, 4);
       setSelectedImages(updatedImages);
       
       // Create preview URLs
-      const newUrls = imageFiles.map(file => URL.createObjectURL(file));
+      const newUrls = mediaFiles.map(file => URL.createObjectURL(file));
       setImagePreviewUrls(prev => [...prev, ...newUrls].slice(0, 4));
+      
+      console.log('[PostModal] Media files added successfully');
     }
 
     // Reset input value
@@ -263,7 +281,19 @@ const PostModal: React.FC<PostModalProps> = ({ isOpen, onClose }) => {
             inputData.mediaUrls = mediaUrls;
           } catch (uploadError) {
             console.error('[PostModal] Media upload failed:', uploadError);
-            alert('媒体上传失败，请重试');
+            const errorMessage = uploadError instanceof Error ? uploadError.message : '媒体上传失败，请重试';
+            
+            // Show user-friendly error messages
+            if (errorMessage.includes('File size too large')) {
+              alert('文件过大！图片最大10MB，视频最大100MB');
+            } else if (errorMessage.includes('File type not supported')) {
+              alert('文件格式不支持！请使用JPG、PNG、GIF、WebP格式的图片或MP4、WebM、MOV、AVI格式的视频');
+            } else if (errorMessage.includes('File too large or invalid format')) {
+              alert('文件过大或格式无效！请检查文件大小和格式');
+            } else {
+              alert(`上传失败：${errorMessage}`);
+            }
+            
             setIsUploadingMedia(false);
             return;
           }
@@ -450,17 +480,25 @@ const PostModal: React.FC<PostModalProps> = ({ isOpen, onClose }) => {
                 </div>
               )}
               
-              {/* Selected Images Preview */}
+              {/* Selected Media Preview */}
               {selectedImages.length > 0 && (
                 <div className="mt-3">
-                  {/* Single Image Layout */}
+                  {/* Single Media Layout */}
                   {selectedImages.length === 1 && (
                     <div className="relative">
-                      <img 
-                        src={imagePreviewUrls[0]} 
-                        alt="Selected image" 
-                        className="w-full max-h-80 rounded-xl object-cover"
-                      />
+                      {selectedImages[0].type.startsWith('image/') ? (
+                        <img 
+                          src={imagePreviewUrls[0]} 
+                          alt="Selected image" 
+                          className="w-full max-h-80 rounded-xl object-cover"
+                        />
+                      ) : (
+                        <video 
+                          src={imagePreviewUrls[0]} 
+                          controls
+                          className="w-full max-h-80 rounded-xl object-cover"
+                        />
+                      )}
                       <button
                         onClick={() => handleRemoveImage(0)}
                         className="absolute top-2 right-2 w-6 h-6 bg-black bg-opacity-70 text-white rounded-full flex items-center justify-center hover:bg-opacity-90"
@@ -472,16 +510,24 @@ const PostModal: React.FC<PostModalProps> = ({ isOpen, onClose }) => {
                     </div>
                   )}
                   
-                  {/* Two Images Layout */}
+                  {/* Two Media Layout */}
                   {selectedImages.length === 2 && (
                     <div className="grid grid-cols-2 gap-2">
                       {imagePreviewUrls.map((url, index) => (
                         <div key={index} className="relative">
-                          <img 
-                            src={url} 
-                            alt={`Selected image ${index + 1}`} 
-                            className="w-full h-48 rounded-xl object-cover"
-                          />
+                          {selectedImages[index].type.startsWith('image/') ? (
+                            <img 
+                              src={url} 
+                              alt={`Selected image ${index + 1}`} 
+                              className="w-full h-48 rounded-xl object-cover"
+                            />
+                          ) : (
+                            <video 
+                              src={url} 
+                              controls
+                              className="w-full h-48 rounded-xl object-cover"
+                            />
+                          )}
                           <button
                             onClick={() => handleRemoveImage(index)}
                             className="absolute top-2 right-2 w-6 h-6 bg-black bg-opacity-70 text-white rounded-full flex items-center justify-center hover:bg-opacity-90"
@@ -614,7 +660,7 @@ const PostModal: React.FC<PostModalProps> = ({ isOpen, onClose }) => {
             <input
               ref={fileInputRef}
               type="file"
-              accept="image/jpeg,image/png,image/gif,image/webp"
+              accept="image/jpeg,image/png,image/gif,image/webp,video/mp4,video/webm,video/quicktime,video/x-msvideo,.mp4,.webm,.mov,.avi"
               multiple
               onChange={handleImageSelect}
               className="hidden"

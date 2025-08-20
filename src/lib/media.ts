@@ -5,7 +5,15 @@ export function isImageFile(file: File): boolean {
 }
 
 export function isVideoFile(file: File): boolean {
-  return file.type.startsWith('video/');
+  // Check MIME type first
+  if (file.type.startsWith('video/')) {
+    return true;
+  }
+  
+  // Fallback: check file extension for cases where MIME type is not detected
+  const ext = file.name.toLowerCase().split('.').pop();
+  const videoExtensions = ['mp4', 'webm', 'mov', 'avi', 'mkv', 'wmv', 'flv', '3gp'];
+  return videoExtensions.includes(ext || '');
 }
 
 export function formatFileSize(bytes: number): string {
@@ -19,8 +27,17 @@ export function formatFileSize(bytes: number): string {
 }
 
 export function validateMediaFile(file: File): { valid: boolean; error?: string } {
+  console.log('[validateMediaFile] Validating file:', {
+    name: file.name,
+    type: file.type,
+    size: file.size,
+    isImage: isImageFile(file),
+    isVideo: isVideoFile(file)
+  });
+  
   // Check file type
   if (!isImageFile(file) && !isVideoFile(file)) {
+    console.log('[validateMediaFile] File type not supported');
     return { 
       valid: false, 
       error: '只支持图片和视频文件' 
@@ -29,13 +46,21 @@ export function validateMediaFile(file: File): { valid: boolean; error?: string 
   
   // Check file size (10MB for images, 100MB for videos)
   const maxSize = isImageFile(file) ? 10 * 1024 * 1024 : 100 * 1024 * 1024;
+  console.log('[validateMediaFile] Size check:', {
+    fileSize: file.size,
+    maxSize: maxSize,
+    isValid: file.size <= maxSize
+  });
+  
   if (file.size > maxSize) {
+    console.log('[validateMediaFile] File size too large');
     return { 
       valid: false, 
       error: `文件大小不能超过 ${isImageFile(file) ? '10MB' : '100MB'}` 
     };
   }
   
+  console.log('[validateMediaFile] File validation passed');
   return { valid: true };
 }
 

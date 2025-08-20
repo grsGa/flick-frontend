@@ -6,6 +6,7 @@ import Avatar from '@/components/core/Avatar';
 import EmojiPicker, { EmojiClickData } from 'emoji-picker-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useCreatePost } from '@/hooks/usePosts';
+import { MediaService } from '@/services/mediaService';
 import GifPicker from './GifPicker';
 
 interface PostModalProps {
@@ -26,6 +27,7 @@ const PostModal: React.FC<PostModalProps> = ({ isOpen, onClose }) => {
   const [showGifPicker, setShowGifPicker] = useState(false);
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
   const [imagePreviewUrls, setImagePreviewUrls] = useState<string[]>([]);
+  const [isUploadingMedia, setIsUploadingMedia] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Reply permission state
@@ -232,6 +234,12 @@ const PostModal: React.FC<PostModalProps> = ({ isOpen, onClose }) => {
         images: selectedImages,
         poll: pollData
       });
+
+      if (!user?.id) {
+        console.log('[PostModal] Submit blocked - user not authenticated');
+        alert('请先登录');
+        return;
+      }
       
       try {
         // Build input data for GraphQL mutation
@@ -244,12 +252,28 @@ const PostModal: React.FC<PostModalProps> = ({ isOpen, onClose }) => {
           inputData.replyPermission = replyPermission;
         }
 
-        // TODO: Handle media uploads and poll data in future iterations
+        // Handle media uploads
+        if (selectedImages.length > 0) {
+          console.log('[PostModal] Uploading media files...');
+          setIsUploadingMedia(true);
+          
+          try {
+            const mediaUrls = await MediaService.uploadPostMedia(selectedImages, user.id);
+            console.log('[PostModal] Media uploaded successfully:', mediaUrls);
+            inputData.mediaUrls = mediaUrls;
+          } catch (uploadError) {
+            console.error('[PostModal] Media upload failed:', uploadError);
+            alert('媒体上传失败，请重试');
+            setIsUploadingMedia(false);
+            return;
+          }
+          
+          setIsUploadingMedia(false);
+        }
+
+        // TODO: Handle GIF and poll data in future iterations
         if (selectedGif) {
           console.log('[PostModal] GIF support not yet implemented');
-        }
-        if (selectedImages.length > 0) {
-          console.log('[PostModal] Image upload support not yet implemented');
         }
         if (pollData) {
           console.log('[PostModal] Poll support not yet implemented');
@@ -278,6 +302,7 @@ const PostModal: React.FC<PostModalProps> = ({ isOpen, onClose }) => {
         
       } catch (err: any) {
         console.error('[PostModal] Failed to create post:', err);
+        setIsUploadingMedia(false);
         // Don't close modal on error so user can retry
       }
     }
@@ -734,15 +759,15 @@ const PostModal: React.FC<PostModalProps> = ({ isOpen, onClose }) => {
           {/* Post Button */}
           <button
             onClick={handlePost}
-            disabled={postLoading || (!content.trim() && !selectedGif && selectedImages.length === 0 && !pollData) || content.length > maxLength}
+            disabled={postLoading || isUploadingMedia || (!content.trim() && !selectedGif && selectedImages.length === 0 && !pollData) || content.length > maxLength}
             className={`px-6 py-2 rounded-full font-bold text-sm transition-colors ${
-              (content.trim() || selectedGif || selectedImages.length > 0 || pollData) && content.length <= maxLength && !postLoading
+              (content.trim() || selectedGif || selectedImages.length > 0 || pollData) && content.length <= maxLength && !postLoading && !isUploadingMedia
                 ? 'bg-black text-white hover:bg-gray-800'
                 : 'bg-gray-300 text-gray-500 cursor-not-allowed'
             }`}
             title="Post"
           >
-            {postLoading ? 'Posting...' : 'Post'}
+            {isUploadingMedia ? 'Uploading...' : postLoading ? 'Posting...' : 'Post'}
           </button>
         </div>
       </div>

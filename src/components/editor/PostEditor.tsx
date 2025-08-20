@@ -3,6 +3,8 @@ import { ComposeState, MediaFile } from '@/types';
 import Avatar from '@/components/core/Avatar';
 import MediaPreview from '@/components/media/MediaPreview';
 import { validateMediaFile, compressImage } from '@/lib/media';
+import { MediaService } from '@/services/mediaService';
+import { useAuth } from '@/hooks/useAuth';
 
 interface PostEditorProps {
   onSubmit: (content: string, mediaIds?: string[]) => void;
@@ -21,7 +23,9 @@ const PostEditor: React.FC<PostEditorProps> = ({
 }) => {
   const [state, setState] = useState<ComposeState>(initialState);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isUploadingMedia, setIsUploadingMedia] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { user } = useAuth();
 
   const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setState(prev => ({
@@ -86,8 +90,14 @@ const PostEditor: React.FC<PostEditorProps> = ({
     console.log('[PostEditor] State:', { content: state.content, mediaCount: state.media.length });
     console.log('[PostEditor] isSubmitting:', isSubmitting);
     
-    if ((!state.content.trim() && state.media.length === 0) || isSubmitting) {
-      console.log('[PostEditor] Submit blocked - no content or already submitting');
+    if ((!state.content.trim() && state.media.length === 0) || isSubmitting || isUploadingMedia) {
+      console.log('[PostEditor] Submit blocked - no content or already submitting/uploading');
+      return;
+    }
+
+    if (!user?.id) {
+      console.log('[PostEditor] Submit blocked - user not authenticated');
+      alert('请先登录');
       return;
     }
 
@@ -95,11 +105,23 @@ const PostEditor: React.FC<PostEditorProps> = ({
     setIsSubmitting(true);
     
     try {
-      // 暂时只支持纯文本发帖，媒体功能待实现
-      const mediaUrls = state.media.length > 0 ? [] : undefined; // 暂时忽略媒体
+      let mediaUrls: string[] = [];
+      
+      // Upload media files if any
+      if (state.media.length > 0) {
+        console.log('[PostEditor] Uploading media files...');
+        setIsUploadingMedia(true);
+        
+        const mediaFiles = state.media.map(media => media.file).filter(file => file) as File[];
+        mediaUrls = await MediaService.uploadPostMedia(mediaFiles, user.id);
+        
+        console.log('[PostEditor] Media uploaded successfully:', mediaUrls);
+        setIsUploadingMedia(false);
+      }
+      
       console.log('[PostEditor] Calling onSubmit with:', { content: state.content, mediaUrls });
       
-      await onSubmit(state.content, mediaUrls);
+      await onSubmit(state.content, mediaUrls.length > 0 ? mediaUrls : undefined);
       
       console.log('[PostEditor] onSubmit completed successfully');
       // Reset form
@@ -107,6 +129,7 @@ const PostEditor: React.FC<PostEditorProps> = ({
     } catch (error) {
       console.error('[PostEditor] Error submitting post:', error);
       alert('发布失败，请重试');
+      setIsUploadingMedia(false);
     } finally {
       console.log('[PostEditor] Setting isSubmitting to false');
       setIsSubmitting(false);
@@ -118,6 +141,7 @@ const PostEditor: React.FC<PostEditorProps> = ({
   };
 
   const isSubmittable = state.content.trim().length > 0 || state.media.length > 0;
+  const isProcessing = isSubmitting || isUploadingMedia;
 
   return (
     <div className="border-b border-gray-200 p-4">
@@ -178,14 +202,14 @@ const PostEditor: React.FC<PostEditorProps> = ({
               
               <button
                 onClick={handleSubmit}
-                disabled={!isSubmittable || isSubmitting}
+                disabled={!isSubmittable || isProcessing}
                 className={`px-4 py-2 rounded-full font-bold ${
-                  isSubmittable 
+                  isSubmittable && !isProcessing
                     ? 'bg-blue-500 text-white hover:bg-blue-600' 
                     : 'bg-blue-300 text-white cursor-not-allowed'
                 }`}
               >
-                {isSubmitting ? '发布中...' : buttonText}
+                {isUploadingMedia ? '上传中...' : isSubmitting ? '发布中...' : buttonText}
               </button>
             </div>
           </div>

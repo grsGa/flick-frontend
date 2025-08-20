@@ -71,6 +71,44 @@ export class MediaService {
   }
 
   /**
+   * Upload post media files to MinIO
+   */
+  static async uploadPostMedia(files: File[], userId: string): Promise<string[]> {
+    const uploadPromises = files.map(async (file, index) => {
+      const formData = new FormData()
+      formData.append('file', file, `post-${userId}-${Date.now()}-${index}.${file.name.split('.').pop()}`)
+      formData.append('type', 'posts')
+      formData.append('userId', userId)
+
+      // Get JWT token from localStorage
+      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+
+      try {
+        const response = await fetch(`${this.API_BASE}/api/media/upload`, {
+          method: 'POST',
+          body: formData,
+          credentials: 'include',
+          headers: {
+            ...(token && { 'Authorization': `Bearer ${token}` })
+          },
+        })
+
+        if (!response.ok) {
+          throw new Error(`Upload failed: ${response.statusText}`)
+        }
+
+        const result = await response.json()
+        return result.url
+      } catch (error) {
+        console.error('Post media upload error:', error)
+        throw error
+      }
+    })
+
+    return Promise.all(uploadPromises)
+  }
+
+  /**
    * Delete media file from MinIO
    */
   static async deleteMedia(fileUrl: string): Promise<void> {

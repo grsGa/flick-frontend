@@ -21,6 +21,41 @@ export const HOME_FEED_QUERY = gql`
             id
             url
             type
+            mimeType
+            width
+            height
+            variants {
+              thumbnail {
+                url
+                width
+                height
+                size
+              }
+              small {
+                url
+                width
+                height
+                size
+              }
+              medium {
+                url
+                width
+                height
+                size
+              }
+              large {
+                url
+                width
+                height
+                size
+              }
+              original {
+                url
+                width
+                height
+                size
+              }
+            }
           }
           interaction {
             isLiked
@@ -59,6 +94,41 @@ export const USER_POSTS_QUERY = gql`
             id
             url
             type
+            mimeType
+            width
+            height
+            variants {
+              thumbnail {
+                url
+                width
+                height
+                size
+              }
+              small {
+                url
+                width
+                height
+                size
+              }
+              medium {
+                url
+                width
+                height
+                size
+              }
+              large {
+                url
+                width
+                height
+                size
+              }
+              original {
+                url
+                width
+                height
+                size
+              }
+            }
           }
           interaction {
             isLiked
@@ -257,6 +327,41 @@ const USER_REPLIES_QUERY = gql`
             id
             url
             type
+            mimeType
+            width
+            height
+            variants {
+              thumbnail {
+                url
+                width
+                height
+                size
+              }
+              small {
+                url
+                width
+                height
+                size
+              }
+              medium {
+                url
+                width
+                height
+                size
+              }
+              large {
+                url
+                width
+                height
+                size
+              }
+              original {
+                url
+                width
+                height
+                size
+              }
+            }
           }
           interaction {
             isLiked
@@ -310,6 +415,41 @@ const USER_MEDIA_QUERY = gql`
             id
             url
             type
+            mimeType
+            width
+            height
+            variants {
+              thumbnail {
+                url
+                width
+                height
+                size
+              }
+              small {
+                url
+                width
+                height
+                size
+              }
+              medium {
+                url
+                width
+                height
+                size
+              }
+              large {
+                url
+                width
+                height
+                size
+              }
+              original {
+                url
+                width
+                height
+                size
+              }
+            }
           }
           interaction {
             isLiked
@@ -363,6 +503,41 @@ const USER_LIKES_QUERY = gql`
             id
             url
             type
+            mimeType
+            width
+            height
+            variants {
+              thumbnail {
+                url
+                width
+                height
+                size
+              }
+              small {
+                url
+                width
+                height
+                size
+              }
+              medium {
+                url
+                width
+                height
+                size
+              }
+              large {
+                url
+                width
+                height
+                size
+              }
+              original {
+                url
+                width
+                height
+                size
+              }
+            }
           }
           interaction {
             isLiked

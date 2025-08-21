@@ -1,12 +1,32 @@
 import React from 'react';
 import { Media, MediaType } from '@/graphql/types';
+import OptimizedMediaGrid from './OptimizedMediaGrid';
 
 interface MediaGridProps {
   media: Media[];
   className?: string;
+  optimized?: boolean; // 是否使用优化版本
+  priority?: 'thumbnail' | 'small' | 'medium';
 }
 
-const MediaGrid: React.FC<MediaGridProps> = ({ media, className = '' }) => {
+const MediaGrid: React.FC<MediaGridProps> = ({ 
+  media, 
+  className = '',
+  optimized = true, // 默认启用优化
+  priority = 'thumbnail'
+}) => {
+  // 使用优化版本
+  if (optimized) {
+    return (
+      <OptimizedMediaGrid 
+        media={media} 
+        className={className}
+        priority={priority}
+      />
+    );
+  }
+
+  // 原始版本（向后兼容）
   if (media.length === 0) return null;
 
   // For single media item

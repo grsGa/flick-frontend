@@ -27,10 +27,38 @@ export interface Post {
 }
 
 
+// 媒体版本信息
+export interface MediaVariant {
+  url: string;
+  width: number;
+  height: number;
+  size: number;
+}
+
+// 多版本媒体信息
+export interface MediaVariants {
+  thumbnail?: MediaVariant; // 缩略图 (150px)
+  small?: MediaVariant;     // 小图 (300px)
+  medium?: MediaVariant;    // 中图 (600px)
+  large?: MediaVariant;     // 大图 (1200px)
+  original?: MediaVariant;  // 原图
+  // 视频特有
+  preview?: MediaVariant;   // 视频预览图
+  lowRes?: MediaVariant;    // 低分辨率视频 (240p)
+  midRes?: MediaVariant;    // 中分辨率视频 (480p)
+  highRes?: MediaVariant;   // 高分辨率视频 (720p)
+}
+
 export interface Media {
   id: string;
-  url: string;
+  url: string; // 保留向后兼容
   type: MediaType;
+  mimeType?: string;
+  width?: number;
+  height?: number;
+  duration?: number; // 视频时长(秒)
+  variants?: MediaVariants; // 多版本URL
+  altText?: string;
 }
 
 export enum MediaType {

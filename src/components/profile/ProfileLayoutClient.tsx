@@ -43,14 +43,15 @@ const ProfileLayoutClient: React.FC<ProfileLayoutClientProps> = ({ username, chi
   const { user: currentUser } = useAuth();
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
-  // Use Apollo Client query to fetch user data on client side
-  const { data, loading, error } = useQuery(GET_USER_QUERY, {
-    variables: { username },
-    errorPolicy: 'all',
-  });
-
   const { followUser } = useFollowUser();
   const { unfollowUser } = useUnfollowUser();
+
+  const { data, loading, error, refetch } = useQuery(GET_USER_QUERY, {
+    variables: { username },
+    errorPolicy: 'all',
+    fetchPolicy: 'cache-and-network', // Ensure we get updates from cache
+    notifyOnNetworkStatusChange: true,
+  });
 
   // Show loading state while fetching user data
   if (loading) {
@@ -76,12 +77,26 @@ const ProfileLayoutClient: React.FC<ProfileLayoutClientProps> = ({ username, chi
 
   const user = data.userByUsername;
   const isFollowPage = pathname.endsWith('/followers') || pathname.endsWith('/following');
+  
+  // Debug log for user state
+  console.log('[ProfileLayoutClient] User data:', {
+    id: user.id,
+    username: user.username,
+    isFollowing: user.isFollowing,
+    followersCount: user.followersCount
+  });
+  console.log('[ProfileLayoutClient] isFollowing value:', user.isFollowing);
+  console.log('[ProfileLayoutClient] Button should show:', user.isFollowing ? 'Following' : 'Follow');
 
   const handleFollow = async () => {
-    if (!user.isFollowing) {
-      await followUser(user.id);
-    } else {
-      await unfollowUser(user.id);
+    try {
+      if (!user.isFollowing) {
+        await followUser({ variables: { userID: user.id } });
+      } else {
+        await unfollowUser({ variables: { userID: user.id } });
+      }
+    } catch (error) {
+      console.error('Follow/unfollow error:', error);
     }
   };
 

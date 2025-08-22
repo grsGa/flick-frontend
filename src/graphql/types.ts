@@ -73,6 +73,7 @@ export interface Interaction {
   likeCount: number;
   commentCount: number;
   repostCount: number;
+  viewCount: number;
 }
 
 export interface PageInfo {

@@ -253,6 +253,11 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
                   onLike={onLike}
                   onComment={onComment}
                   onRepost={onRepost}
+                  onView={() => {
+                    // View action - could track views here
+                    console.log('View clicked for post:', post.id);
+                  }}
+                  onShare={onShare}
                   className="justify-around"
                 />
                 

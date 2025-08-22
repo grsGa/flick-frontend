@@ -64,6 +64,7 @@ export const HOME_FEED_QUERY = gql`
             likeCount
             commentCount
             repostCount
+            viewCount
           }
         }
       }
@@ -137,6 +138,7 @@ export const USER_POSTS_QUERY = gql`
             likeCount
             commentCount
             repostCount
+            viewCount
           }
         }
       }
@@ -370,6 +372,7 @@ const USER_REPLIES_QUERY = gql`
             likeCount
             commentCount
             repostCount
+            viewCount
           }
         }
       }
@@ -458,6 +461,7 @@ const USER_MEDIA_QUERY = gql`
             likeCount
             commentCount
             repostCount
+            viewCount
           }
         }
       }
@@ -546,6 +550,7 @@ const USER_LIKES_QUERY = gql`
             likeCount
             commentCount
             repostCount
+            viewCount
           }
         }
       }

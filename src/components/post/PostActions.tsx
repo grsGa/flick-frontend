@@ -9,6 +9,7 @@ interface PostActionsProps {
   onRepost?: () => void;
   onBookmark?: () => void;
   onShare?: () => void;
+  onView?: () => void;
 }
 
 const PostActions: React.FC<PostActionsProps> = ({
@@ -18,13 +19,15 @@ const PostActions: React.FC<PostActionsProps> = ({
   onRepost,
   onBookmark,
   onShare,
+  onView,
 }) => {
   return (
-    <div className="flex justify-between max-w-md">
+    <div className="flex justify-between items-center w-full">
       {/* Comment */}
       <button 
         onClick={onComment}
-        className="flex items-center text-gray-500 hover:text-blue-500 group"
+        className="flex items-center text-gray-500 hover:text-blue-500 group relative"
+        title="Comment"
       >
         <div className="p-2 rounded-full group-hover:bg-blue-100">
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -39,9 +42,10 @@ const PostActions: React.FC<PostActionsProps> = ({
       {/* Repost */}
       <button 
         onClick={onRepost}
-        className={`flex items-center group ${
+        className={`flex items-center group relative ${
           interaction.isReposted ? 'text-green-500' : 'text-gray-500 hover:text-green-500'
         }`}
+        title="Repost"
       >
         <div className="p-2 rounded-full group-hover:bg-green-100">
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -56,9 +60,10 @@ const PostActions: React.FC<PostActionsProps> = ({
       {/* Like */}
       <button 
         onClick={onLike}
-        className={`flex items-center group ${
+        className={`flex items-center group relative ${
           interaction.isLiked ? 'text-red-500' : 'text-gray-500 hover:text-red-500'
         }`}
+        title="Like"
       >
         <div className="p-2 rounded-full group-hover:bg-red-100">
           {interaction.isLiked ? (
@@ -76,12 +81,29 @@ const PostActions: React.FC<PostActionsProps> = ({
         )}
       </button>
 
+      {/* View */}
+      <button 
+        onClick={onView}
+        className="flex items-center text-gray-500 hover:text-blue-500 group relative"
+        title="View"
+      >
+        <div className="p-2 rounded-full group-hover:bg-blue-100">
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+          </svg>
+        </div>
+        {interaction.viewCount > 0 && (
+          <span className="ml-1 text-sm">{formatNumber(interaction.viewCount)}</span>
+        )}
+      </button>
+
       {/* Bookmark */}
       <button 
         onClick={onBookmark}
-        className={`flex items-center group ${
+        className={`flex items-center group relative ${
           interaction.isBookmarked ? 'text-blue-500' : 'text-gray-500 hover:text-blue-500'
         }`}
+        title="Bookmark"
       >
         <div className="p-2 rounded-full group-hover:bg-blue-100">
           {interaction.isBookmarked ? (
@@ -99,7 +121,8 @@ const PostActions: React.FC<PostActionsProps> = ({
       {/* Share */}
       <button 
         onClick={onShare}
-        className="flex items-center text-gray-500 hover:text-blue-500 group"
+        className="flex items-center text-gray-500 hover:text-blue-500 group relative"
+        title="Share"
       >
         <div className="p-2 rounded-full group-hover:bg-blue-100">
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

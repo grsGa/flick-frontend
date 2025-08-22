@@ -93,6 +93,10 @@ const PostCard: React.FC<PostCardProps> = ({
               onBookmark={() => onBookmark?.(post.id)}
               onRepost={() => onRepost?.(post.id)}
               onComment={() => onComment?.(post.id)}
+              onView={() => {
+                // View action - could track views here
+                console.log('View clicked for post:', post.id);
+              }}
               onShare={() => {
                 if (navigator.share) {
                   navigator.share({

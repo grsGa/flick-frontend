@@ -62,7 +62,26 @@ const PostCard: React.FC<PostCardProps> = ({
           {/* Media */}
           {post.media.length > 0 && (
             <div className="mb-2">
-              <MediaGrid media={post.media} />
+              <MediaGrid 
+                media={post.media} 
+                priority="medium" 
+                optimized={true}
+                post={post}
+                onLike={() => onLike?.(post.id)}
+                onComment={() => onComment?.(post.id)}
+                onRepost={() => onRepost?.(post.id)}
+                onShare={() => {
+                  if (navigator.share) {
+                    navigator.share({
+                      title: `${post.author.displayName || post.author.username}的帖子`,
+                      text: post.content,
+                      url: window.location.href
+                    });
+                  } else {
+                    navigator.clipboard.writeText(window.location.href);
+                  }
+                }}
+              />
             </div>
           )}
 
@@ -74,6 +93,17 @@ const PostCard: React.FC<PostCardProps> = ({
               onBookmark={() => onBookmark?.(post.id)}
               onRepost={() => onRepost?.(post.id)}
               onComment={() => onComment?.(post.id)}
+              onShare={() => {
+                if (navigator.share) {
+                  navigator.share({
+                    title: `${post.author.displayName || post.author.username}的帖子`,
+                    text: post.content,
+                    url: window.location.href
+                  });
+                } else {
+                  navigator.clipboard.writeText(window.location.href);
+                }
+              }}
             />
           </div>
         </div>

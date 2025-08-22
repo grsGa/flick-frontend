@@ -138,13 +138,20 @@ const Sidebar: React.FC = () => {
             );
           })}
           
-          {/* Post 按钮 */}
+          {/* Post 按钮 - 响应式设计 */}
           <li className="mt-4">
             <button 
               onClick={() => setIsPostModalOpen(true)}
-              className="w-full bg-black text-white font-bold py-3 px-6 rounded-full hover:bg-gray-800 transition-colors"
+              className="w-full bg-black text-white font-bold py-3 px-6 rounded-full hover:bg-gray-800 transition-colors flex items-center justify-center lg:justify-start"
             >
-              <span className="text-xl">Post</span>
+              {/* 窄屏显示图标 */}
+              <div className="block lg:hidden">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+              </div>
+              {/* 宽屏显示文字 */}
+              <span className="text-xl hidden lg:block">Post</span>
             </button>
           </li>
         </ul>

@@ -7,13 +7,21 @@ interface MediaGridProps {
   className?: string;
   optimized?: boolean; // 是否使用优化版本
   priority?: 'thumbnail' | 'small' | 'medium';
+  post?: any; // 帖子信息，用于图片查看器
+  onLike?: () => void;
+  onComment?: () => void;
+  onRepost?: () => void;
 }
 
 const MediaGrid: React.FC<MediaGridProps> = ({ 
   media, 
   className = '',
   optimized = true, // 默认启用优化
-  priority = 'thumbnail'
+  priority = 'medium', // 改为默认显示medium质量
+  post,
+  onLike,
+  onComment,
+  onRepost
 }) => {
   // 使用优化版本
   if (optimized) {
@@ -22,6 +30,10 @@ const MediaGrid: React.FC<MediaGridProps> = ({
         media={media} 
         className={className}
         priority={priority}
+        post={post}
+        onLike={onLike}
+        onComment={onComment}
+        onRepost={onRepost}
       />
     );
   }

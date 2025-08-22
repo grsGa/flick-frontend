@@ -482,21 +482,21 @@ const PostModal: React.FC<PostModalProps> = ({ isOpen, onClose }) => {
               
               {/* Selected Media Preview */}
               {selectedImages.length > 0 && (
-                <div className="mt-3">
+                <div className="mt-3 max-w-full overflow-hidden">
                   {/* Single Media Layout */}
                   {selectedImages.length === 1 && (
-                    <div className="relative">
+                    <div className="relative max-w-full">
                       {selectedImages[0].type.startsWith('image/') ? (
                         <img 
                           src={imagePreviewUrls[0]} 
                           alt="Selected image" 
-                          className="w-full max-h-80 rounded-xl object-cover"
+                          className="w-full max-w-full max-h-80 rounded-xl object-contain"
                         />
                       ) : (
                         <video 
                           src={imagePreviewUrls[0]} 
                           controls
-                          className="w-full max-h-80 rounded-xl object-cover"
+                          className="w-full max-w-full max-h-80 rounded-xl object-contain"
                         />
                       )}
                       <button
@@ -512,9 +512,9 @@ const PostModal: React.FC<PostModalProps> = ({ isOpen, onClose }) => {
                   
                   {/* Two Media Layout */}
                   {selectedImages.length === 2 && (
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-2 gap-2 max-w-full">
                       {imagePreviewUrls.map((url, index) => (
-                        <div key={index} className="relative">
+                        <div key={index} className="relative overflow-hidden">
                           {selectedImages[index].type.startsWith('image/') ? (
                             <img 
                               src={url} 
@@ -543,8 +543,8 @@ const PostModal: React.FC<PostModalProps> = ({ isOpen, onClose }) => {
                   
                   {/* Three Images Layout */}
                   {selectedImages.length === 3 && (
-                    <div className="grid grid-cols-2 gap-2 h-96">
-                      <div className="relative row-span-2">
+                    <div className="grid grid-cols-2 gap-2 h-96 max-w-full overflow-hidden">
+                      <div className="relative row-span-2 overflow-hidden">
                         <img 
                           src={imagePreviewUrls[0]} 
                           alt="Selected image 1" 
@@ -560,7 +560,7 @@ const PostModal: React.FC<PostModalProps> = ({ isOpen, onClose }) => {
                         </button>
                       </div>
                       {imagePreviewUrls.slice(1).map((url, index) => (
-                        <div key={index + 1} className="relative">
+                        <div key={index + 1} className="relative overflow-hidden">
                           <img 
                             src={url} 
                             alt={`Selected image ${index + 2}`} 
@@ -581,9 +581,9 @@ const PostModal: React.FC<PostModalProps> = ({ isOpen, onClose }) => {
                   
                   {/* Four Images Layout */}
                   {selectedImages.length === 4 && (
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-2 gap-2 max-w-full overflow-hidden">
                       {imagePreviewUrls.map((url, index) => (
-                        <div key={index} className="relative">
+                        <div key={index} className="relative overflow-hidden">
                           <img 
                             src={url} 
                             alt={`Selected image ${index + 1}`} 

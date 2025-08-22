@@ -1,19 +1,31 @@
 import React, { useState, useCallback } from 'react';
-import { Media, MediaType, MediaVariant } from '@/graphql/types';
+import { Media, MediaType, MediaVariant, Post } from '@/graphql/types';
+import ImageViewer from './ImageViewer';
 
 interface OptimizedMediaGridProps {
   media: Media[];
   className?: string;
   priority?: 'thumbnail' | 'small' | 'medium'; // 优先加载的版本
+  post?: Post; // 帖子信息，用于图片查看器
+  onLike?: () => void;
+  onComment?: () => void;
+  onRepost?: () => void;
 }
 
 const OptimizedMediaGrid: React.FC<OptimizedMediaGridProps> = ({ 
   media, 
   className = '',
-  priority = 'thumbnail' // 默认优先加载缩略图
+  priority = 'medium', // 默认优先加载中等分辨率图片
+  post,
+  onLike,
+  onComment,
+  onRepost
 }) => {
   const [loadedImages, setLoadedImages] = useState<Set<string>>(new Set());
   const [fullSizeImages, setFullSizeImages] = useState<Set<string>>(new Set());
+  const [imageAspectRatios, setImageAspectRatios] = useState<Map<string, number>>(new Map());
+  const [viewerOpen, setViewerOpen] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   if (media.length === 0) return null;
 
@@ -37,9 +49,9 @@ const OptimizedMediaGrid: React.FC<OptimizedMediaGridProps> = ({
                  item.variants.thumbnail?.url || 
                  item.url;
         case 'medium':
-          return item.variants.medium?.url || 
+          return item.variants.large?.url || 
+                 item.variants.medium?.url || 
                  item.variants.small?.url || 
-                 item.variants.thumbnail?.url || 
                  item.url;
         default: // thumbnail
           return item.variants.thumbnail?.url || 
@@ -80,17 +92,34 @@ const OptimizedMediaGrid: React.FC<OptimizedMediaGridProps> = ({
     }
   }, []);
 
-  // 处理图片点击 - 显示高分辨率版本
-  const handleImageClick = useCallback((item: Media) => {
+  // 处理图片点击 - 打开图片查看器
+  const handleImageClick = useCallback((item: Media, index: number) => {
     if (item.type === MediaType.IMAGE) {
-      setFullSizeImages(prev => new Set([...prev, item.id]));
+      const imageMedia = media.filter(m => m.type === MediaType.IMAGE);
+      const imageIndex = imageMedia.findIndex(m => m.id === item.id);
+      setCurrentImageIndex(imageIndex >= 0 ? imageIndex : 0);
+      setViewerOpen(true);
     }
+  }, [media]);
+
+  // 处理图片加载完成并计算纵横比
+  const handleImageLoad = useCallback((mediaId: string, event: React.SyntheticEvent<HTMLImageElement>) => {
+    const img = event.currentTarget;
+    const aspectRatio = img.naturalWidth / img.naturalHeight;
+    
+    setLoadedImages(prev => new Set([...prev, mediaId]));
+    setImageAspectRatios(prev => new Map([...prev, [mediaId, aspectRatio]]));
   }, []);
 
-  // 处理图片加载完成
-  const handleImageLoad = useCallback((itemId: string) => {
-    setLoadedImages(prev => new Set([...prev, itemId]));
-  }, []);
+  // 根据纵横比判断图片类型
+  const getImageType = useCallback((mediaId: string): 'landscape' | 'portrait' | 'square' => {
+    const aspectRatio = imageAspectRatios.get(mediaId);
+    if (!aspectRatio) return 'square'; // 默认正方形
+    
+    if (aspectRatio > 1.3) return 'landscape'; // 长图
+    if (aspectRatio < 0.75) return 'portrait'; // 竖图
+    return 'square'; // 正方形
+  }, [imageAspectRatios]);
 
   // 渲染单个媒体项
   const renderMediaItem = useCallback((item: Media, index: number, isGrid = false) => {
@@ -103,8 +132,8 @@ const OptimizedMediaGrid: React.FC<OptimizedMediaGridProps> = ({
       return (
         <div 
           key={item.id}
-          className={`relative overflow-hidden cursor-pointer ${isGrid ? 'h-full' : ''}`}
-          onClick={() => handleImageClick(item)}
+          className={`relative overflow-hidden cursor-pointer ${isGrid ? 'h-full' : 'w-full h-full'}`}
+          onClick={() => handleImageClick(item, index)}
         >
           {/* 加载占位符 */}
           {!isLoaded && (
@@ -117,22 +146,14 @@ const OptimizedMediaGrid: React.FC<OptimizedMediaGridProps> = ({
             src={displayUrl}
             alt={item.altText || `Post media ${index + 1}`}
             className={`
-              w-full h-full object-cover transition-opacity duration-300
+              transition-opacity duration-300
               ${isLoaded ? 'opacity-100' : 'opacity-0'}
-              ${isGrid ? 'object-cover' : 'object-contain'}
+              ${isGrid ? 'w-full h-full object-cover' : 'w-full h-full object-cover'}
             `}
-            onLoad={() => handleImageLoad(item.id)}
+            onLoad={(e) => handleImageLoad(item.id, e)}
             loading="lazy" // 原生懒加载
           />
           
-          {/* 点击提示 */}
-          {!showFullSize && isLoaded && (
-            <div className="absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-10 transition-all duration-200 flex items-center justify-center opacity-0 hover:opacity-100">
-              <div className="bg-black bg-opacity-50 text-white px-2 py-1 rounded text-sm">
-                点击查看高清
-              </div>
-            </div>
-          )}
         </div>
       );
     } else if (item.type === MediaType.VIDEO) {
@@ -163,47 +184,221 @@ const OptimizedMediaGrid: React.FC<OptimizedMediaGridProps> = ({
     return null;
   }, [loadedImages, fullSizeImages, getBestUrl, getVideoPreview, getVideoUrl, handleImageClick, handleImageLoad]);
 
-  // 单个媒体项
+  // 图片查看器导航功能
+  const imageMedia = media.filter(m => m.type === MediaType.IMAGE);
+  
+  const handleNextImage = useCallback(() => {
+    setCurrentImageIndex(prev => (prev + 1) % imageMedia.length);
+  }, [imageMedia.length]);
+  
+  const handlePreviousImage = useCallback(() => {
+    setCurrentImageIndex(prev => (prev - 1 + imageMedia.length) % imageMedia.length);
+  }, [imageMedia.length]);
+  
+  const handleCloseViewer = useCallback(() => {
+    setViewerOpen(false);
+  }, []);
+  
+  const handleShare = useCallback(() => {
+    if (imageMedia[currentImageIndex]) {
+      const imageUrl = imageMedia[currentImageIndex].variants?.original?.url || imageMedia[currentImageIndex].url;
+      if (navigator.share) {
+        navigator.share({
+          title: '分享图片',
+          url: imageUrl
+        });
+      } else {
+        navigator.clipboard.writeText(imageUrl);
+        // 这里可以添加一个toast提示
+      }
+    }
+  }, [imageMedia, currentImageIndex]);
+
+  // 单个媒体项 - 根据纵横比动态调整布局
   if (media.length === 1) {
     const item = media[0];
+    const imageType = getImageType(item.id);
+    const isLoaded = loadedImages.has(item.id);
+    
+    // 根据图片类型设置不同的容器样式
+    const getContainerStyle = () => {
+      if (!isLoaded) {
+        // 加载中时使用默认样式
+        return { minHeight: '300px', maxHeight: '500px', maxWidth: '100%' };
+      }
+      
+      switch (imageType) {
+        case 'landscape':
+          // 长图：左对齐显示，充分利用宽度
+          return { 
+            aspectRatio: '16/9',
+            maxHeight: '400px',
+            width: '100%'
+          };
+        case 'portrait':
+          // 竖图：左对齐显示，限制宽度
+          return { 
+            aspectRatio: '9/16',
+            maxHeight: '600px',
+            maxWidth: '400px'
+          };
+        case 'square':
+        default:
+          // 正方形：左对齐显示
+          return { 
+            aspectRatio: '1/1',
+            maxHeight: '500px',
+            width: '100%'
+          };
+      }
+    };
+
+    const getContainerClasses = () => {
+      const baseClasses = `rounded-2xl overflow-hidden border border-gray-200 ${className}`;
+      
+      if (!isLoaded) {
+        return `${baseClasses} w-full`;
+      }
+      
+      switch (imageType) {
+        case 'landscape':
+          return `${baseClasses} w-full`;
+        case 'portrait':
+          return `${baseClasses}`;
+        case 'square':
+        default:
+          return `${baseClasses} w-full`;
+      }
+    };
+    
     return (
-      <div className={`rounded-xl overflow-hidden ${className}`}>
-        {renderMediaItem(item, 0)}
-      </div>
+      <>
+        <div 
+          className={getContainerClasses()}
+          style={getContainerStyle()}
+        >
+          {renderMediaItem(item, 0)}
+        </div>
+
+        {/* 图片查看器 */}
+        <ImageViewer
+          media={imageMedia}
+          currentIndex={currentImageIndex}
+          post={post}
+          isOpen={viewerOpen}
+          onClose={handleCloseViewer}
+          onNext={imageMedia.length > 1 ? handleNextImage : undefined}
+          onPrevious={imageMedia.length > 1 ? handlePreviousImage : undefined}
+          onLike={onLike}
+          onComment={onComment}
+          onRepost={onRepost}
+          onShare={handleShare}
+        />
+      </>
     );
   }
 
-  // 多个媒体项网格布局
-  const displayedMedia = media.slice(0, 4);
-  const gridClass = displayedMedia.length === 2 
-    ? 'grid grid-cols-2 gap-1' 
-    : displayedMedia.length === 3
-    ? 'grid grid-cols-2 gap-1 grid-rows-2'
-    : 'grid grid-cols-2 gap-1';
-
-  return (
-    <div className={`${gridClass} rounded-xl overflow-hidden ${className}`}>
-      {displayedMedia.map((item, index) => (
-        <div 
-          key={item.id}
-          className={`
-            ${displayedMedia.length === 3 && index === 0 ? 'row-span-2' : ''}
-            overflow-hidden relative
-          `}
-        >
-          {renderMediaItem(item, index, true)}
-          
-          {/* 更多媒体提示 */}
-          {index === 3 && media.length > 4 && (
-            <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-              <span className="text-white text-lg font-semibold">
-                +{media.length - 4}
-              </span>
+  // 两张图片 - 左右并排
+  if (media.length === 2) {
+    return (
+      <>
+        <div className={`grid grid-cols-2 gap-1 rounded-2xl overflow-hidden border border-gray-200 ${className}`} style={{ height: '280px' }}>
+          {media.slice(0, 2).map((item, index) => (
+            <div key={item.id} className="overflow-hidden relative">
+              {renderMediaItem(item, index, true)}
             </div>
-          )}
+          ))}
         </div>
-      ))}
-    </div>
+
+        {/* 图片查看器 */}
+        <ImageViewer
+          media={imageMedia}
+          currentIndex={currentImageIndex}
+          post={post}
+          isOpen={viewerOpen}
+          onClose={handleCloseViewer}
+          onNext={imageMedia.length > 1 ? handleNextImage : undefined}
+          onPrevious={imageMedia.length > 1 ? handlePreviousImage : undefined}
+          onLike={onLike}
+          onComment={onComment}
+          onRepost={onRepost}
+          onShare={handleShare}
+        />
+      </>
+    );
+  }
+
+  // 三张图片 - 左侧大图，右侧两张小图
+  if (media.length === 3) {
+    return (
+      <>
+        <div className={`grid grid-cols-2 gap-1 rounded-2xl overflow-hidden border border-gray-200 ${className}`} style={{ height: '280px' }}>
+          {/* 左侧大图 */}
+          <div className="row-span-2 overflow-hidden relative">
+            {renderMediaItem(media[0], 0, true)}
+          </div>
+          {/* 右侧两张小图 */}
+          {media.slice(1, 3).map((item, index) => (
+            <div key={item.id} className="overflow-hidden relative">
+              {renderMediaItem(item, index + 1, true)}
+            </div>
+          ))}
+        </div>
+
+        {/* 图片查看器 */}
+        <ImageViewer
+          media={imageMedia}
+          currentIndex={currentImageIndex}
+          post={post}
+          isOpen={viewerOpen}
+          onClose={handleCloseViewer}
+          onNext={imageMedia.length > 1 ? handleNextImage : undefined}
+          onPrevious={imageMedia.length > 1 ? handlePreviousImage : undefined}
+          onLike={onLike}
+          onComment={onComment}
+          onRepost={onRepost}
+          onShare={handleShare}
+        />
+      </>
+    );
+  }
+
+  // 四张或更多图片 - 2x2网格
+  const displayedMedia = media.slice(0, 4);
+  return (
+    <>
+      <div className={`grid grid-cols-2 gap-1 rounded-2xl overflow-hidden border border-gray-200 ${className}`} style={{ height: '280px' }}>
+        {displayedMedia.map((item, index) => (
+          <div key={item.id} className="overflow-hidden relative">
+            {renderMediaItem(item, index, true)}
+            
+            {/* 更多媒体提示 */}
+            {index === 3 && media.length > 4 && (
+              <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+                <span className="text-white text-2xl font-bold">
+                  +{media.length - 4}
+                </span>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* 图片查看器 */}
+      <ImageViewer
+        media={imageMedia}
+        currentIndex={currentImageIndex}
+        post={post}
+        isOpen={viewerOpen}
+        onClose={handleCloseViewer}
+        onNext={imageMedia.length > 1 ? handleNextImage : undefined}
+        onPrevious={imageMedia.length > 1 ? handlePreviousImage : undefined}
+        onLike={onLike}
+        onComment={onComment}
+        onRepost={onRepost}
+        onShare={handleShare}
+      />
+    </>
   );
 };
 

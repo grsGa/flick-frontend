@@ -1,7 +1,8 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useFollowers } from '@/hooks/useUser';
+import { useAuth } from '@/hooks/useAuth';
 import InfiniteScrollList from './InfiniteScrollList';
 import { User } from '@/graphql/types';
 import { PageInfo } from '@/graphql/types';
@@ -17,36 +18,89 @@ const FollowersClient: React.FC<FollowersClientProps> = ({
   initialFollowers,
   initialPageInfo,
 }) => {
-  const { followers, pageInfo, fetchMore, loading } = useFollowers(userId);
+  const { user: currentUser } = useAuth();
+  const { followers, pageInfo, fetchMore, loading, refetch } = useFollowers(userId);
+  const hasRefetched = useRef(false);
 
-  const [hasMore, setHasMore] = React.useState(initialPageInfo.hasNextPage);
-  const [items, setItems] = React.useState<User[]>(initialFollowers);
+  console.log('[FollowersClient] Component rendered:', {
+    currentUser: !!currentUser,
+    loading,
+    hasRefetched: hasRefetched.current,
+    followersCount: followers?.length || 0
+  });
 
-  if (items.length === 0) {
+  // Refetch data when user authentication is available to get correct follow states
+  useEffect(() => {
+    if (currentUser && !loading && !hasRefetched.current) {
+      console.log('[FollowersClient] User authenticated, refetching once to get correct follow states');
+      hasRefetched.current = true;
+      refetch({
+        fetchPolicy: 'network-only' // Force network request to get fresh data
+      }).then((result) => {
+        console.log('[FollowersClient] Refetch completed, new data:', result.data);
+        const followersUsers = result.data?.followers?.edges?.map(edge => ({
+          username: edge.node.username,
+          isFollowing: edge.node.isFollowing
+        }));
+        console.log('[FollowersClient] Followers users:', followersUsers);
+        
+        // Log detailed comparison
+        followersUsers?.forEach(user => {
+          console.log(`[FollowersClient] User ${user.username}: isFollowing = ${user.isFollowing}`);
+        });
+        console.log('[FollowersClient] Updated followers data with correct follow states');
+      }).catch((error) => {
+        console.error('[FollowersClient] Refetch failed:', error);
+        hasRefetched.current = false; // Reset to allow retry
+      });
+    }
+  }, [currentUser, refetch, loading]); // Only refetch once when user becomes available
+
+  // Prioritize fresh GraphQL data over initial SSR data when user is authenticated
+  // After refetch, always use GraphQL data if available, regardless of length
+  const items = currentUser && followers !== undefined ? followers : 
+                !currentUser && initialFollowers.length > 0 ? initialFollowers :
+                followers !== undefined ? followers : initialFollowers;
+  const currentPageInfo = pageInfo || initialPageInfo;
+  const hasMore = currentPageInfo.hasNextPage;
+
+  // Show loading state while GraphQL is fetching
+  if (loading && items.length === 0) {
     return (
-      <div className="text-center p-8">
-        <h2 className="text-2xl font-bold mb-2">No followers yet</h2>
-        <p className="text-gray-500">When someone follows this account, they'll show up here.</p>
+      <div className="bg-white">
+        <div className="flex justify-center items-center p-12">
+          <div className="text-gray-500">Loading followers...</div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show empty state only when not loading and no items
+  if (!loading && items.length === 0) {
+    return (
+      <div className="bg-white">
+        <div className="text-center p-12">
+          <div className="mb-4">
+            <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">No followers yet</h2>
+          <p className="text-gray-500 max-w-sm mx-auto">When someone follows this account, they'll show up here.</p>
+        </div>
       </div>
     );
   }
 
   const loadMore = async () => {
-    if (!pageInfo?.endCursor) {
-      setHasMore(false);
+    if (!currentPageInfo?.endCursor) {
       return [];
     }
 
     const { data } = await fetchMore({
-      variables: { after: pageInfo.endCursor },
+      variables: { after: currentPageInfo.endCursor },
     });
 
-    if (data.followers.edges.length > 0) {
-      setItems(prev => [...prev, ...data.followers.edges.map((edge: any) => edge.node)]);
-      setHasMore(data.followers.pageInfo.hasNextPage);
-    } else {
-      setHasMore(false);
-    }
     return data.followers.edges.map((edge: any) => edge.node);
   };
 
@@ -55,7 +109,7 @@ const FollowersClient: React.FC<FollowersClientProps> = ({
       initialItems={items}
       fetchMore={loadMore}
       hasMore={hasMore}
-      itemType="user"
+      itemType="following"
     />
   );
 };

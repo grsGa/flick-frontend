@@ -52,6 +52,7 @@ async function getFollowingPageData(username: string) {
     const followingResult = await client.query({
       query: GET_FOLLOWING,
       variables: { userId: user.id, first: 10 },
+      fetchPolicy: 'cache-first', // Use cache-first to ensure data is cached for client-side
     });
 
     return {

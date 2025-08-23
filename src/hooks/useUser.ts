@@ -23,8 +23,12 @@ const FOLLOW_USER_MUTATION = gql`
   mutation FollowUser($userID: String!) {
     followUser(userID: $userID) {
       id
+      username
+      displayName
+      avatarUrl
       isFollowing
       followersCount
+      followingCount
     }
   }
 `;
@@ -33,8 +37,12 @@ const UNFOLLOW_USER_MUTATION = gql`
   mutation UnfollowUser($userID: String!) {
     unfollowUser(userID: $userID) {
       id
+      username
+      displayName
+      avatarUrl
       isFollowing
       followersCount
+      followingCount
     }
   }
 `;
@@ -83,48 +91,44 @@ export function useFollowUser() {
     update(cache, { data }) {
       console.log('Follow mutation response:', data);
       if (data?.followUser) {
-        const { id, isFollowing, followersCount } = data.followUser;
+        const { id, username, displayName, avatarUrl, isFollowing, followersCount, followingCount } = data.followUser;
         console.log('Updating cache for user:', id, 'isFollowing:', isFollowing, 'followersCount:', followersCount);
         
-        // Update all cached queries that contain this user
+        // Update user data in cache using single approach
         const cacheId = cache.identify({ __typename: 'User', id });
         console.log('Cache ID:', cacheId);
         
-        // Write the updated user data directly to cache
         cache.writeFragment({
           id: cacheId,
           fragment: gql`
             fragment UpdatedUser on User {
               id
+              username
+              displayName
+              avatarUrl
               isFollowing
               followersCount
+              followingCount
             }
           `,
           data: {
             id,
+            username,
+            displayName,
+            avatarUrl,
             isFollowing,
             followersCount,
+            followingCount,
             __typename: 'User'
           }
         });
         
         console.log('Cache updated with writeFragment');
-        
-        // Also try modify approach as backup
-        cache.modify({
-          id: cacheId,
-          fields: {
-            isFollowing() {
-              console.log('Setting isFollowing to:', isFollowing);
-              return isFollowing;
-            },
-            followersCount() {
-              console.log('Setting followersCount to:', followersCount);
-              return followersCount;
-            },
-          },
-        });
       }
+    },
+    refetchQueries: (result) => {
+      console.log('Follow refetchQueries called with result:', result);
+      return ['UserByUsername', 'Followers', 'Following'];
     },
   });
 
@@ -140,48 +144,44 @@ export function useUnfollowUser() {
     update(cache, { data }) {
       console.log('Unfollow mutation response:', data);
       if (data?.unfollowUser) {
-        const { id, isFollowing, followersCount } = data.unfollowUser;
+        const { id, username, displayName, avatarUrl, isFollowing, followersCount, followingCount } = data.unfollowUser;
         console.log('Updating cache for user:', id, 'isFollowing:', isFollowing, 'followersCount:', followersCount);
         
-        // Update all cached queries that contain this user
+        // Update user data in cache using single approach
         const cacheId = cache.identify({ __typename: 'User', id });
         console.log('Cache ID:', cacheId);
         
-        // Write the updated user data directly to cache
         cache.writeFragment({
           id: cacheId,
           fragment: gql`
             fragment UpdatedUser on User {
               id
+              username
+              displayName
+              avatarUrl
               isFollowing
               followersCount
+              followingCount
             }
           `,
           data: {
             id,
+            username,
+            displayName,
+            avatarUrl,
             isFollowing,
             followersCount,
+            followingCount,
             __typename: 'User'
           }
         });
         
         console.log('Cache updated with writeFragment');
-        
-        // Also try modify approach as backup
-        cache.modify({
-          id: cacheId,
-          fields: {
-            isFollowing() {
-              console.log('Setting isFollowing to:', isFollowing);
-              return isFollowing;
-            },
-            followersCount() {
-              console.log('Setting followersCount to:', followersCount);
-              return followersCount;
-            },
-          },
-        });
       }
+    },
+    refetchQueries: (result) => {
+      console.log('Unfollow refetchQueries called with result:', result);
+      return ['UserByUsername', 'Followers', 'Following'];
     },
   });
 
@@ -236,9 +236,10 @@ const FOLLOWERS_QUERY = gql`
 `;
 
 export function useFollowers(userId: string, first: number = 10) {
-  const { data, loading, error, fetchMore } = useQuery(FOLLOWERS_QUERY, {
+  const { data, loading, error, fetchMore, refetch } = useQuery(FOLLOWERS_QUERY, {
     variables: { userId, first },
     skip: !userId,
+    fetchPolicy: 'cache-first', // Use cache-first to prevent unnecessary network requests
   });
 
   return {
@@ -247,6 +248,7 @@ export function useFollowers(userId: string, first: number = 10) {
     loading,
     error,
     fetchMore,
+    refetch,
   };
 }
 
@@ -272,9 +274,10 @@ const FOLLOWING_QUERY = gql`
 `;
 
 export function useFollowing(userId: string, first: number = 10) {
-  const { data, loading, error, fetchMore } = useQuery(FOLLOWING_QUERY, {
+  const { data, loading, error, fetchMore, refetch } = useQuery(FOLLOWING_QUERY, {
     variables: { userId, first },
     skip: !userId,
+    fetchPolicy: 'cache-first', // Use cache-first to prevent unnecessary network requests
   });
 
   return {
@@ -283,5 +286,6 @@ export function useFollowing(userId: string, first: number = 10) {
     loading,
     error,
     fetchMore,
+    refetch,
   };
 }

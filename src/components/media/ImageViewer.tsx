@@ -1,9 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Media, Post } from '@/graphql/types';
-import Avatar from '@/components/core/Avatar';
-import UserName from '@/components/core/UserName';
-import TimeAgo from '@/components/core/TimeAgo';
-import PostActions from '@/components/post/PostActions';
+import ImageViewerSidebar from '@/components/media/ImageViewerSidebar';
 
 interface ImageViewerProps {
   media: Media[];
@@ -16,6 +13,7 @@ interface ImageViewerProps {
   onLike?: () => void;
   onComment?: () => void;
   onRepost?: () => void;
+  onBookmark?: () => void;
   onShare?: () => void;
 }
 
@@ -30,6 +28,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
   onLike,
   onComment,
   onRepost,
+  onBookmark,
   onShare,
 }) => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -107,9 +106,8 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
 
   return (
     <div className="fixed inset-0 z-[9999] flex">
-      {/* 背景遮罩层 - 增强层次感 */}
-      <div className="absolute inset-0 bg-gradient-to-b from-black/90 via-black/95 to-black/90" />
-      <div className="absolute inset-0 bg-black/20 backdrop-blur-sm" />
+      {/* 背景遮罩层 - 半透明模糊黑色遮罩 */}
+      <div className="absolute inset-0 bg-black/80 backdrop-blur-md" />
       
       {/* 固定位置的关闭按钮 - 左上角 */}
       <button
@@ -179,102 +177,37 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
         </div>
       </div>
 
+      {/* 边栏切换按钮 - 移至边栏外部 */}
+      <button
+        className={`fixed top-4 z-[10001] bg-black/60 hover:bg-black/80 text-white p-2 rounded transition-all ${
+          sidebarOpen ? 'right-84' : 'right-4'
+        }`}
+        onClick={() => setSidebarOpen(!sidebarOpen)}
+      >
+        {sidebarOpen ? (
+          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+        ) : (
+          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+        )}
+      </button>
+
       {/* 右侧边栏 */}
       <div className={`fixed right-0 top-0 h-full w-80 bg-white transform transition-transform duration-300 ${
         sidebarOpen ? 'translate-x-0' : 'translate-x-full'
       }`}>
-        {/* 边栏切换按钮 */}
-        <button
-          className={`absolute top-4 z-10 bg-gray-100 hover:bg-gray-200 p-2 rounded transition-all ${
-            sidebarOpen ? 'right-4' : '-left-12'
-          }`}
-          onClick={() => setSidebarOpen(!sidebarOpen)}
-        >
-          {sidebarOpen ? (
-            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-          ) : (
-            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-          )}
-        </button>
-
-        {/* 边栏内容 */}
-        <div className="h-full flex flex-col p-4 pt-16">
-          {post && (
-            <>
-              {/* 帖子作者信息 */}
-              <div className="flex items-start space-x-3 mb-4">
-                <Avatar
-                  src={post.author.avatarUrl}
-                  alt={post.author.displayName || post.author.username}
-                  size="md"
-                />
-                <div className="flex-1">
-                  <div className="flex items-center">
-                    <UserName 
-                      user={post.author} 
-                      verified={post.author.isVerified}
-                    />
-                  </div>
-                  <TimeAgo date={post.createdAt} className="text-sm text-gray-500" />
-                </div>
-              </div>
-
-              {/* 帖子内容 */}
-              {post.content && (
-                <div className="mb-4">
-                  <p className="text-gray-900">{post.content}</p>
-                </div>
-              )}
-
-              {/* 图片信息 */}
-              <div className="mb-4 p-3 bg-gray-50 rounded-lg">
-                <h3 className="font-medium text-sm text-gray-700 mb-2">图片信息</h3>
-                <div className="text-xs text-gray-600 space-y-1">
-                  {currentMedia.variants?.original && (
-                    <div>尺寸: {currentMedia.variants.original.width} × {currentMedia.variants.original.height}</div>
-                  )}
-                  {currentMedia.variants?.original?.size && (
-                    <div>大小: {(currentMedia.variants.original.size / 1024).toFixed(1)} KB</div>
-                  )}
-                  {currentMedia.altText && (
-                    <div>描述: {currentMedia.altText}</div>
-                  )}
-                </div>
-              </div>
-
-              {/* 互动按钮 */}
-              <div className="mt-auto">
-                <PostActions
-                  interaction={post.interaction}
-                  onLike={onLike}
-                  onComment={onComment}
-                  onRepost={onRepost}
-                  onView={() => {
-                    // View action - could track views here
-                    console.log('View clicked for post:', post.id);
-                  }}
-                  onShare={onShare}
-                  className="justify-around"
-                />
-                
-                {/* 分享按钮 */}
-                <button
-                  className="w-full mt-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded transition-all flex items-center justify-center"
-                  onClick={onShare}
-                >
-                  <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
-                  </svg>
-                  分享图片
-                </button>
-              </div>
-            </>
-          )}
-        </div>
+        <ImageViewerSidebar
+          post={post}
+          currentMedia={currentMedia}
+          onLike={onLike}
+          onComment={onComment}
+          onRepost={onRepost}
+          onBookmark={onBookmark}
+          onShare={onShare}
+        />
       </div>
 
       {/* 背景点击关闭 - 暂时移除，只使用ESC键和关闭按钮 */}

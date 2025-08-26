@@ -84,7 +84,7 @@ const GET_POST_DETAIL = gql`
       }
       stats {
         likeCount
-        commentCount
+        replyCount
         repostCount
         viewCount
       }
@@ -93,7 +93,7 @@ const GET_POST_DETAIL = gql`
         isBookmarked
         isReposted
         likeCount
-        commentCount
+        replyCount
         repostCount
         viewCount
       }

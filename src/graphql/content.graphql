@@ -7,10 +7,10 @@ type Post {
   createdAt: String!
   media: [Media!]!
   interaction: Interaction!
-  comments(first: Int!, after: String): CommentConnection
+  replies(first: Int!, after: String): ReplyConnection
 }
 
-type Comment {
+type Reply {
   id: ID!
   content: String!
   author: User!
@@ -24,7 +24,7 @@ input CreatePostInput {
   replyTo: ID
 }
 
-input CreateCommentInput {
+input CreateReplyInput {
   content: String!
   postId: ID!
 }
@@ -55,12 +55,12 @@ type PostConnection {
   pageInfo: PageInfo!
 }
 
-type CommentEdge {
-  node: Comment!
+type ReplyEdge {
+  node: Reply!
   cursor: String!
 }
 
-type CommentConnection {
-  edges: [CommentEdge!]!
+type ReplyConnection {
+  edges: [ReplyEdge!]!
   pageInfo: PageInfo!
 }

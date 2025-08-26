@@ -24,7 +24,7 @@ export default function Bookmarks() {
         isBookmarked: true,
         isReposted: false,
         likeCount: 120,
-        commentCount: 42,
+        replyCount: 42,
         repostCount: 15,
       },
     },

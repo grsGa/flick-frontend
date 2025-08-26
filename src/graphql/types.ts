@@ -26,6 +26,13 @@ export interface Post {
   interaction: Interaction;
 }
 
+export interface Reply {
+  id: string;
+  content: string;
+  author: User;
+  createdAt: string;
+  interaction: Interaction;
+}
 
 // 媒体版本信息
 export interface MediaVariant {
@@ -71,7 +78,7 @@ export interface Interaction {
   isBookmarked: boolean;
   isReposted: boolean;
   likeCount: number;
-  commentCount: number;
+  replyCount: number;
   repostCount: number;
   viewCount: number;
 }
@@ -108,7 +115,7 @@ export interface Notification {
 
 export enum NotificationType {
   LIKE = "LIKE",
-  COMMENT = "COMMENT",
+  REPLY = "REPLY",
   FOLLOW = "FOLLOW",
   REPOST = "REPOST",
   BOOKMARK = "BOOKMARK"

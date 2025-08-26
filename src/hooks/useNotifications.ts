@@ -18,7 +18,7 @@ const NOTIFICATIONS_QUERY = gql`
               id
               content
             }
-            ... on Comment {
+            ... on Reply {
               id
               content
             }

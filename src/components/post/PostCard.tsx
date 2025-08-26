@@ -13,7 +13,7 @@ interface PostCardProps {
   onLike?: (postId: string) => void;
   onBookmark?: (postId: string) => void;
   onRepost?: (postId: string) => void;
-  onComment?: (postId: string) => void;
+  onReply?: (postId: string) => void;
   className?: string;
 }
 
@@ -22,7 +22,7 @@ const PostCard: React.FC<PostCardProps> = ({
   onLike,
   onBookmark,
   onRepost,
-  onComment,
+  onReply,
   className = '',
 }) => {
   const router = useRouter();
@@ -83,7 +83,7 @@ const PostCard: React.FC<PostCardProps> = ({
                 optimized={true}
                 post={post}
                 onLike={() => onLike?.(post.id)}
-                onComment={() => onComment?.(post.id)}
+                onReply={() => onReply?.(post.id)}
                 onRepost={() => onRepost?.(post.id)}
                 onShare={() => {
                   if (navigator.share) {
@@ -109,7 +109,7 @@ const PostCard: React.FC<PostCardProps> = ({
               onLike={() => onLike?.(post.id)}
               onBookmark={() => onBookmark?.(post.id)}
               onRepost={() => onRepost?.(post.id)}
-              onComment={() => onComment?.(post.id)}
+              onReply={() => onReply?.(post.id)}
               onShare={() => {
                 if (navigator.share) {
                   navigator.share({

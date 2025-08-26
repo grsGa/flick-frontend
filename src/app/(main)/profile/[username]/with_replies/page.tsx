@@ -40,7 +40,7 @@ const GET_USER_REPLIES = gql`
             isBookmarked
             isReposted
             likeCount
-            commentCount
+            replyCount
             repostCount
           }
         }

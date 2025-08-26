@@ -5,7 +5,7 @@ type Interaction {
   isBookmarked: Boolean!
   isReposted: Boolean!
   likeCount: Int!
-  commentCount: Int!
+  replyCount: Int!
   repostCount: Int!
 }
 

@@ -10,9 +10,9 @@ import { useMutation } from '@apollo/client';
 import { gql } from '@apollo/client';
 import { toast } from '@/lib/toast';
 
-const CREATE_COMMENT_MUTATION = gql`
-  mutation CreateComment($input: CreateCommentInput!) {
-    createComment(input: $input) {
+const CREATE_REPLY_MUTATION = gql`
+  mutation CreateReply($input: CreateReplyInput!) {
+    createReply(input: $input) {
       id
       content
       author {
@@ -28,7 +28,7 @@ const CREATE_COMMENT_MUTATION = gql`
         isBookmarked
         isReposted
         likeCount
-        commentCount
+        replyCount
         repostCount
         viewCount
       }
@@ -51,16 +51,16 @@ export default function ReplyComposer({
   const [content, setContent] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const [createComment] = useMutation(CREATE_COMMENT_MUTATION, {
+  const [createReply] = useMutation(CREATE_REPLY_MUTATION, {
     onCompleted: (data) => {
-      console.log('[ReplyComposer] Comment created successfully:', data.createComment);
+      console.log('[ReplyComposer] Reply created successfully:', data.createReply);
       setContent('');
       setIsSubmitting(false);
       toast.success('回复发布成功！');
       onReplySuccess?.();
     },
     onError: (error) => {
-      console.error('[ReplyComposer] Error creating comment:', error);
+      console.error('[ReplyComposer] Error creating reply:', error);
       setIsSubmitting(false);
       toast.error('回复发布失败，请重试');
     },
@@ -79,7 +79,7 @@ export default function ReplyComposer({
     setIsSubmitting(true);
 
     try {
-      await createComment({
+      await createReply({
         variables: {
           input: {
             content: content.trim(),

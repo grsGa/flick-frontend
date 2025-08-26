@@ -46,7 +46,7 @@ export default function Notifications() {
               </div>
               <div className="mt-1">
                 {notification.type === 'LIKE' && '点赞了你的动态'}
-                {notification.type === 'COMMENT' && '评论了你的动态'}
+                {notification.type === 'REPLY' && '回复了你的动态'}
                 {notification.type === 'FOLLOW' && '关注了你'}
                 {notification.type === 'REPOST' && '转发了你的动态'}
                 {notification.type === 'BOOKMARK' && '收藏了你的动态'}

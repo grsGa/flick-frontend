@@ -11,13 +11,13 @@ type Notification {
 
 enum NotificationType {
   LIKE
-  COMMENT
+  REPLY
   FOLLOW
   REPOST
   BOOKMARK
 }
 
-union NotificationEntity = Post | Comment | User
+union NotificationEntity = Post | Reply | User
 
 type NotificationEdge {
   node: Notification!

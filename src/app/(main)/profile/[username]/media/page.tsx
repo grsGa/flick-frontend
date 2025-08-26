@@ -40,7 +40,7 @@ const GET_USER_MEDIA = gql`
             isBookmarked
             isReposted
             likeCount
-            commentCount
+            replyCount
             repostCount
           }
         }

@@ -13,7 +13,7 @@ interface ImageViewerSidebarProps {
   post?: Post;
   currentMedia: Media;
   onLike?: () => void;
-  onComment?: () => void;
+  onReply?: () => void;
   onRepost?: () => void;
   onBookmark?: () => void;
   onShare?: () => void;
@@ -23,7 +23,7 @@ const ImageViewerSidebar: React.FC<ImageViewerSidebarProps> = ({
   post,
   currentMedia,
   onLike,
-  onComment,
+  onReply,
   onRepost,
   onBookmark,
   onShare,
@@ -204,7 +204,7 @@ const ImageViewerSidebar: React.FC<ImageViewerSidebarProps> = ({
               post={post}
               layout="horizontal"
               showCounts={true}
-              onComment={onComment}
+              onReply={onReply}
               onLike={onLike}
               onRepost={onRepost}
               onBookmark={onBookmark}
@@ -459,8 +459,8 @@ const ImageViewerSidebar: React.FC<ImageViewerSidebarProps> = ({
                               replyTo: post.id
                             });
                             
-                            // Call the onComment handler if provided
-                            onComment?.();
+                            // Call the onReply handler if provided
+                            onReply?.();
                             
                             // Reset form
                             setReplyText('');

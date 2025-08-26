@@ -8,7 +8,7 @@ interface OptimizedMediaGridProps {
   priority?: 'thumbnail' | 'small' | 'medium'; // 优先加载的版本
   post?: Post; // 帖子信息，用于图片查看器
   onLike?: () => void;
-  onComment?: () => void;
+  onReply?: () => void;
   onRepost?: () => void;
 }
 
@@ -18,7 +18,7 @@ const OptimizedMediaGrid: React.FC<OptimizedMediaGridProps> = ({
   priority = 'medium', // 默认优先加载中等分辨率图片
   post,
   onLike,
-  onComment,
+  onReply,
   onRepost
 }) => {
   const [loadedImages, setLoadedImages] = useState<Set<string>>(new Set());
@@ -290,7 +290,7 @@ const OptimizedMediaGrid: React.FC<OptimizedMediaGridProps> = ({
           onNext={imageMedia.length > 1 ? handleNextImage : undefined}
           onPrevious={imageMedia.length > 1 ? handlePreviousImage : undefined}
           onLike={onLike}
-          onComment={onComment}
+          onReply={onReply}
           onRepost={onRepost}
           onShare={handleShare}
         />
@@ -320,7 +320,7 @@ const OptimizedMediaGrid: React.FC<OptimizedMediaGridProps> = ({
           onNext={imageMedia.length > 1 ? handleNextImage : undefined}
           onPrevious={imageMedia.length > 1 ? handlePreviousImage : undefined}
           onLike={onLike}
-          onComment={onComment}
+          onReply={onReply}
           onRepost={onRepost}
           onShare={handleShare}
         />
@@ -355,7 +355,7 @@ const OptimizedMediaGrid: React.FC<OptimizedMediaGridProps> = ({
           onNext={imageMedia.length > 1 ? handleNextImage : undefined}
           onPrevious={imageMedia.length > 1 ? handlePreviousImage : undefined}
           onLike={onLike}
-          onComment={onComment}
+          onReply={onReply}
           onRepost={onRepost}
           onShare={handleShare}
         />
@@ -394,7 +394,7 @@ const OptimizedMediaGrid: React.FC<OptimizedMediaGridProps> = ({
         onNext={imageMedia.length > 1 ? handleNextImage : undefined}
         onPrevious={imageMedia.length > 1 ? handlePreviousImage : undefined}
         onLike={onLike}
-        onComment={onComment}
+        onReply={onReply}
         onRepost={onRepost}
         onShare={handleShare}
       />

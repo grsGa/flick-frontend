@@ -11,13 +11,13 @@ import { MessageCircle, Heart, Repeat2, Share } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 import Link from 'next/link';
-import { Comment } from '@/graphql/types';
+import { Reply } from '@/graphql/types';
 
 const GET_POST_REPLIES = gql`
   query GetPostReplies($postId: ID!, $first: Int!, $after: String) {
     post(id: $postId) {
       id
-      comments(first: $first, after: $after) {
+      replies(first: $first, after: $after) {
         edges {
           node {
             id
@@ -34,7 +34,7 @@ const GET_POST_REPLIES = gql`
               isLiked
               isBookmarked
               likeCount
-              commentCount
+              replyCount
               repostCount
               viewCount
             }
@@ -68,13 +68,13 @@ export default function RepliesList({ postId }: RepliesListProps) {
   });
 
   const handleLoadMore = async () => {
-    if (!data?.post?.comments?.pageInfo?.hasNextPage || loadingMore) return;
+    if (!data?.post?.replies?.pageInfo?.hasNextPage || loadingMore) return;
 
     setLoadingMore(true);
     try {
       await fetchMore({
         variables: {
-          after: data.post.comments.pageInfo.endCursor,
+          after: data.post.replies.pageInfo.endCursor,
         },
       });
     } catch (error) {
@@ -131,8 +131,8 @@ export default function RepliesList({ postId }: RepliesListProps) {
     );
   }
 
-  const replies = data?.post?.comments?.edges || [];
-  const hasNextPage = data?.post?.comments?.pageInfo?.hasNextPage;
+  const replies = data?.post?.replies?.edges || [];
+  const hasNextPage = data?.post?.replies?.pageInfo?.hasNextPage;
 
   if (replies.length === 0) {
     return null;
@@ -188,7 +188,7 @@ export default function RepliesList({ postId }: RepliesListProps) {
                     className="text-gray-500 hover:text-blue-500 hover:bg-blue-50 p-2"
                   >
                     <MessageCircle className="h-4 w-4 mr-1" />
-                    <span className="text-sm">{reply.interaction.commentCount}</span>
+                    <span className="text-sm">{reply.interaction.replyCount}</span>
                   </Button>
 
                   <Button

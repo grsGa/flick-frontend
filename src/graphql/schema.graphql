@@ -28,7 +28,7 @@ type Mutation {
   
   # Content mutations
   createPost(input: CreatePostInput!): Post!
-  createComment(input: CreateCommentInput!): Comment!
+  createReply(input: CreateReplyInput!): Reply!
   
   # Interaction mutations
   likePost(input: LikePostInput!): Interaction!

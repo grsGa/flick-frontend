@@ -11,7 +11,7 @@ interface ImageViewerProps {
   onNext?: () => void;
   onPrevious?: () => void;
   onLike?: () => void;
-  onComment?: () => void;
+  onReply?: () => void;
   onRepost?: () => void;
   onBookmark?: () => void;
   onShare?: () => void;
@@ -26,7 +26,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
   onNext,
   onPrevious,
   onLike,
-  onComment,
+  onReply,
   onRepost,
   onBookmark,
   onShare,
@@ -203,7 +203,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
           post={post}
           currentMedia={currentMedia}
           onLike={onLike}
-          onComment={onComment}
+          onReply={onReply}
           onRepost={onRepost}
           onBookmark={onBookmark}
           onShare={onShare}

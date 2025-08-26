@@ -6,7 +6,7 @@ import { Post } from '@/graphql/types';
 interface PostInteractionButtonsProps {
   post: Post;
   onLike?: () => void;
-  onComment?: () => void;
+  onReply?: () => void;
   onRepost?: () => void;
   onBookmark?: () => void;
   onShare?: () => void;
@@ -17,7 +17,7 @@ interface PostInteractionButtonsProps {
 const PostInteractionButtons: React.FC<PostInteractionButtonsProps> = ({
   post,
   onLike,
-  onComment,
+  onReply,
   onRepost,
   onBookmark,
   onShare,
@@ -37,15 +37,15 @@ const PostInteractionButtons: React.FC<PostInteractionButtonsProps> = ({
     <div className={layout === 'horizontal' ? "flex items-center justify-between" : "flex flex-col space-y-2"}>
       {/* Reply */}
       <button 
-        onClick={onComment}
+        onClick={onReply}
         className={`${buttonClass} text-gray-500`}
         title="Reply"
       >
         <svg className={iconClass} fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
         </svg>
-        {showCounts && post.interaction.commentCount > 0 && (
-          <span className={countClass}>{post.interaction.commentCount}</span>
+        {showCounts && post.interaction.replyCount > 0 && (
+          <span className={countClass}>{post.interaction.replyCount}</span>
         )}
       </button>
 

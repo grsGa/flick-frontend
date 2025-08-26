@@ -62,7 +62,7 @@ export const HOME_FEED_QUERY = gql`
             isBookmarked
             isReposted
             likeCount
-            commentCount
+            replyCount
             repostCount
             viewCount
           }
@@ -136,7 +136,7 @@ export const USER_POSTS_QUERY = gql`
             isBookmarked
             isReposted
             likeCount
-            commentCount
+            replyCount
             repostCount
             viewCount
           }
@@ -178,7 +178,7 @@ const CREATE_POST_MUTATION = gql`
         isBookmarked
         isReposted
         likeCount
-        commentCount
+        replyCount
         repostCount
       }
       tags
@@ -370,7 +370,7 @@ const USER_REPLIES_QUERY = gql`
             isBookmarked
             isReposted
             likeCount
-            commentCount
+            replyCount
             repostCount
             viewCount
           }
@@ -459,7 +459,7 @@ const USER_MEDIA_QUERY = gql`
             isBookmarked
             isReposted
             likeCount
-            commentCount
+            replyCount
             repostCount
             viewCount
           }
@@ -548,7 +548,7 @@ const USER_LIKES_QUERY = gql`
             isBookmarked
             isReposted
             likeCount
-            commentCount
+            replyCount
             repostCount
             viewCount
           }

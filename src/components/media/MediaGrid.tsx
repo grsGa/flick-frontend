@@ -9,7 +9,7 @@ interface MediaGridProps {
   priority?: 'thumbnail' | 'small' | 'medium';
   post?: any; // 帖子信息，用于图片查看器
   onLike?: () => void;
-  onComment?: () => void;
+  onReply?: () => void;
   onRepost?: () => void;
 }
 
@@ -20,7 +20,7 @@ const MediaGrid: React.FC<MediaGridProps> = ({
   priority = 'medium', // 改为默认显示medium质量
   post,
   onLike,
-  onComment,
+  onReply,
   onRepost
 }) => {
   // 使用优化版本
@@ -32,7 +32,7 @@ const MediaGrid: React.FC<MediaGridProps> = ({
         priority={priority}
         post={post}
         onLike={onLike}
-        onComment={onComment}
+        onReply={onReply}
         onRepost={onRepost}
       />
     );

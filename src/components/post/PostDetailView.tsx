@@ -152,7 +152,7 @@ export default function PostDetailView({ post }: PostDetailViewProps) {
               post={post}
               layout="horizontal"
               showCounts={true}
-              onComment={() => {}}
+              onReply={() => {}}
               onLike={() => console.log('Like clicked')}
               onRepost={() => console.log('Repost clicked')}
               onBookmark={() => console.log('Bookmark clicked')}

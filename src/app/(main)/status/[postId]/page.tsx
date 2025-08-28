@@ -82,12 +82,6 @@ const GET_POST_DETAIL = gql`
         expiresAt
         isExpired
       }
-      stats {
-        likeCount
-        replyCount
-        repostCount
-        viewCount
-      }
       interaction {
         isLiked
         isBookmarked

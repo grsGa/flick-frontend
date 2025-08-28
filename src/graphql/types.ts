@@ -21,9 +21,21 @@ export interface Post {
   id: string;
   content: string;
   author: User;
+  parentId?: string;
+  rootId?: string;
+  isReply: boolean;
+  replyLevel: number;
   createdAt: string;
+  updatedAt: string;
   media: Media[];
   interaction: Interaction;
+}
+
+export interface PostStats {
+  likeCount: number;
+  replyCount: number;
+  repostCount: number;
+  viewCount: number;
 }
 
 export interface Reply {

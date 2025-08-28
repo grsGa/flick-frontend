@@ -6,7 +6,8 @@ import Avatar from '@/components/core/Avatar';
 import { Button } from '@/components/ui/button';
 import EmojiPicker, { EmojiClickData } from 'emoji-picker-react';
 import GifPicker from '@/components/post/GifPicker';
-import { MediaService } from '@/services/mediaService';
+import { MediaService } from '@/services/MediaService';
+import { useCreateReply } from '@/hooks/useReplies';
 
 interface UnifiedReplyComposerProps {
   postId: string;
@@ -33,6 +34,7 @@ const UnifiedReplyComposer: React.FC<UnifiedReplyComposerProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { user } = useAuth();
+  const [createReply] = useCreateReply();
 
   // Cleanup URLs on unmount
   useEffect(() => {
@@ -163,13 +165,19 @@ const UnifiedReplyComposer: React.FC<UnifiedReplyComposerProps> = ({
         }
       }
 
-      // TODO: Implement reply submission via GraphQL mutation
-      console.log('Submitting reply:', {
-        postId,
-        content: replyText,
-        mediaUrls,
-        gifUrl: selectedGif
+      // Submit reply via GraphQL mutation
+      const result = await createReply({
+        variables: {
+          input: {
+            postId,
+            content: replyText,
+            mediaUrls,
+            mentionedUsers: [] // TODO: Extract mentions from content
+          }
+        }
       });
+      
+      console.log('Reply created successfully:', result.data?.createReply);
 
       // Reset form
       setReplyText('');
@@ -196,7 +204,7 @@ const UnifiedReplyComposer: React.FC<UnifiedReplyComposerProps> = ({
   }
 
   return (
-    <div className={`bg-white border-t border-gray-200 ${className}`}>
+    <div className={`bg-white ${className}`}>
       <div className="p-4">
         <div className="flex items-start space-x-3">
           <Avatar 

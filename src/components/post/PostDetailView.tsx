@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -12,8 +12,8 @@ import { formatDistanceToNow } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 import MediaGrid from '@/components/media/MediaGrid';
 import PostInteractionButtons from '@/components/post/PostInteractionButtons';
+import { ReplyList } from '@/components/replies/ReplyList';
 import UnifiedReplyComposer from '@/components/post/UnifiedReplyComposer';
-import RepliesList from '@/components/post/RepliesList';
 import { Post } from '@/graphql/types';
 
 interface PostDetailViewProps {
@@ -23,6 +23,7 @@ interface PostDetailViewProps {
 export default function PostDetailView({ post }: PostDetailViewProps) {
   const router = useRouter();
   const [showReplyComposer, setShowReplyComposer] = useState(false);
+  const replyComposerRef = useRef<HTMLDivElement>(null);
 
   const handleBack = () => {
     router.back();
@@ -47,6 +48,14 @@ export default function PostDetailView({ post }: PostDetailViewProps) {
     });
   };
 
+  const handleReplyClick = () => {
+    replyComposerRef.current?.scrollIntoView({ 
+      behavior: 'smooth',
+      block: 'center'
+    });
+    // 可以添加聚焦到输入框的逻辑
+  };
+
   return (
     <div className="min-h-screen bg-white">
       {/* Header */}
@@ -68,7 +77,7 @@ export default function PostDetailView({ post }: PostDetailViewProps) {
 
       {/* Main Content */}
       <div className="w-full">
-        <Card className="bg-white border-gray-200 rounded-none border-x-0 border-t-0">
+        <Card className="bg-white border-gray-200 rounded-none border-x-0 border-t-0 shadow-none">
           <div className="p-4">
             {/* Author Info */}
             <div className="flex items-start space-x-3 mb-4">
@@ -145,14 +154,13 @@ export default function PostDetailView({ post }: PostDetailViewProps) {
               <span className="font-bold">{post.interaction.viewCount.toLocaleString()} Views</span>
             </div>
 
-            <Separator className="bg-gray-200 mb-4" />
 
             {/* Actions */}
             <PostInteractionButtons 
               post={post}
               layout="horizontal"
               showCounts={true}
-              onReply={() => {}}
+              onReply={handleReplyClick}
               onLike={() => console.log('Like clicked')}
               onRepost={() => console.log('Repost clicked')}
               onBookmark={() => console.log('Bookmark clicked')}
@@ -171,16 +179,27 @@ export default function PostDetailView({ post }: PostDetailViewProps) {
           </div>
         </Card>
 
-        {/* Unified Reply Composer */}
-        <UnifiedReplyComposer 
-          postId={post.id}
-          onReplySuccess={() => {}}
-          placeholder="Post your reply"
-          className="border-t-0"
-        />
+        {/* Reply Composer */}
+        <div ref={replyComposerRef} className="p-4">
+          <UnifiedReplyComposer 
+            postId={post.id}
+            onReplySuccess={() => {
+              // 回复成功后可以刷新回复列表
+              console.log('Reply created successfully');
+            }}
+            placeholder="发布你的回复"
+          />
+        </div>
 
         {/* Replies */}
-        <RepliesList postId={post.id} />
+        <div>
+          <ReplyList 
+            postId={post.id}
+            maxNestingLevel={3}
+            showReplyInput={false}
+            className="p-4"
+          />
+        </div>
       </div>
     </div>
   );

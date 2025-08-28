@@ -1,0 +1,101 @@
+# Reply-related GraphQL operations
+
+fragment PostFragment on Post {
+  id
+  content
+  author {
+    id
+    username
+    displayName
+    avatarUrl
+    isVerified
+  }
+  parentId
+  rootId
+  isReply
+  replyLevel
+  media {
+    id
+    url
+    type
+    variants {
+      thumbnail {
+        url
+        width
+        height
+      }
+      small {
+        url
+        width
+        height
+      }
+      medium {
+        url
+        width
+        height
+      }
+    }
+  }
+  stats {
+    likeCount
+    replyCount
+    repostCount
+    viewCount
+  }
+  interaction {
+    isLiked
+    isBookmarked
+    isReposted
+  }
+  createdAt
+  updatedAt
+}
+
+# Query to get replies for a specific post
+query GetPostReplies($postId: ID!, $first: Int!, $after: String) {
+  postReplies(postId: $postId, first: $first, after: $after) {
+    edges {
+      node {
+        ...PostFragment
+      }
+      cursor
+    }
+    pageInfo {
+      hasNextPage
+      endCursor
+    }
+  }
+}
+
+# Query to get a full conversation thread
+query GetConversationThread($rootId: ID!, $first: Int!, $after: String) {
+  conversationThread(rootId: $rootId, first: $first, after: $after) {
+    edges {
+      node {
+        ...PostFragment
+      }
+      cursor
+    }
+    pageInfo {
+      hasNextPage
+      endCursor
+    }
+  }
+}
+
+# Mutation to create a reply
+mutation CreateReply($input: CreateReplyInput!) {
+  createReply(input: $input) {
+    ...PostFragment
+  }
+}
+
+# Mutation to delete a reply
+mutation DeleteReply($replyId: ID!) {
+  deleteReply(replyId: $replyId)
+}
+
+# Query to check if user can reply to a post
+query CheckReplyPermission($postId: ID!) {
+  checkReplyPermission(postId: $postId)
+}

@@ -25,12 +25,6 @@ const CREATE_REPLY_MUTATION = gql`
       createdAt
       interaction {
         isLiked
-        isBookmarked
-        isReposted
-        likeCount
-        replyCount
-        repostCount
-        viewCount
       }
     }
   }
@@ -47,7 +41,7 @@ export default function ReplyComposer({
   onReplySuccess,
   placeholder = "发布你的回复"
 }: ReplyComposerProps) {
-  const { currentUser } = useAuth();
+  const { user: currentUser } = useAuth();
   const [content, setContent] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 

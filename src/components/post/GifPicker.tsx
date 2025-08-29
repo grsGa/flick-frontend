@@ -33,11 +33,16 @@ const GifPicker: React.FC<GifPickerProps> = ({ isOpen, onClose, onGifSelect }) =
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const API_KEY = 'AIzaSyArSGS5Rwl5sMFi13xuEKUsMVNap1l2soQ';
-  const CLIENT_KEY = 'flick_social_app';
+  const API_KEY = process.env.NEXT_PUBLIC_TENOR_API_KEY;
+  const CLIENT_KEY = process.env.NEXT_PUBLIC_TENOR_CLIENT_KEY || 'flick_social_app';
 
   // 搜索热门GIF
   const searchTrendingGifs = async () => {
+    if (!API_KEY) {
+      setError('Tenor API key not configured');
+      return;
+    }
+    
     setLoading(true);
     setError(null);
     
@@ -64,6 +69,11 @@ const GifPicker: React.FC<GifPickerProps> = ({ isOpen, onClose, onGifSelect }) =
   const searchGifs = async (query: string) => {
     if (!query.trim()) {
       searchTrendingGifs();
+      return;
+    }
+
+    if (!API_KEY) {
+      setError('Tenor API key not configured');
       return;
     }
 

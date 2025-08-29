@@ -75,7 +75,7 @@ const PostCard: React.FC<PostCardProps> = ({
           </div>
 
           {/* Media */}
-          {post.media.length > 0 && (
+          {post.media && post.media.length > 0 && (
             <div className="mb-2" onClick={handleActionClick}>
               <MediaGrid 
                 media={post.media} 

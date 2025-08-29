@@ -76,6 +76,159 @@ export const HOME_FEED_QUERY = gql`
   }
 `;
 
+// Timeline query for following feed
+export const GET_TIMELINE = gql`
+  query GetTimeline($first: Int!, $after: String) {
+    timeline(first: $first, after: $after) {
+      edges {
+        node {
+          id
+          content
+          createdAt
+          updatedAt
+          author {
+            id
+            username
+            displayName
+            avatarUrl
+          }
+          mediaAttachments {
+            id
+            url
+            type
+            variants {
+              thumbnail {
+                url
+                width
+                height
+              }
+              small {
+                url
+                width
+                height
+              }
+              medium {
+                url
+                width
+                height
+              }
+              large {
+                url
+                width
+                height
+              }
+              original {
+                url
+                width
+                height
+              }
+            }
+          }
+          stats {
+            likeCount
+            replyCount
+            repostCount
+          }
+          interaction {
+            isLiked
+            isReposted
+          }
+          replyPermission
+          visibility
+        }
+        cursor
+      }
+      pageInfo {
+        hasNextPage
+        endCursor
+      }
+    }
+  }
+`;
+
+const GET_FOLLOWING_TIMELINE = gql`
+  query GetFollowingTimeline($first: Int!, $after: String) {
+    followingTimeline(first: $first, after: $after) {
+      edges {
+        node {
+          id
+          content
+          createdAt
+          updatedAt
+          author {
+            id
+            username
+            displayName
+            avatarUrl
+            isVerified
+          }
+          media {
+            id
+            url
+            type
+            mimeType
+            width
+            height
+            variants {
+              thumbnail {
+                url
+                width
+                height
+                size
+              }
+              small {
+                url
+                width
+                height
+                size
+              }
+              medium {
+                url
+                width
+                height
+                size
+              }
+              large {
+                url
+                width
+                height
+                size
+              }
+              original {
+                url
+                width
+                height
+                size
+              }
+            }
+          }
+          stats {
+            likeCount
+            replyCount
+            repostCount
+          }
+          interaction {
+            isLiked
+            isBookmarked
+            isReposted
+            likeCount
+            replyCount
+            repostCount
+            viewCount
+          }
+          replyPermission
+          visibility
+        }
+        cursor
+      }
+      pageInfo {
+        hasNextPage
+        endCursor
+      }
+    }
+  }
+`;
+
 export const USER_POSTS_QUERY = gql`
   query UserPosts($username: String!, $first: Int!, $after: String) {
     userPosts(username: $username, first: $first, after: $after) {
@@ -574,5 +727,25 @@ export function useUserLikes(userId: string, first: number = 10) {
     loading,
     error,
     fetchMore,
+  };
+}
+
+// Hook for following timeline (关注用户的帖子)
+export const useFollowingFeed = (first: number = 20) => {
+  const { data, loading, error, fetchMore, refetch } = useQuery(GET_FOLLOWING_TIMELINE, {
+    variables: { first },
+    notifyOnNetworkStatusChange: true,
+  });
+
+  return {
+    posts: data?.followingTimeline?.edges?.map((edge: any) => edge.node) || [],
+    loading,
+    error,
+    pageInfo: data?.followingTimeline?.pageInfo,
+    fetchMore: (cursor: string) =>
+      fetchMore({
+        variables: { first, after: cursor },
+      }),
+    refetch,
   };
 }

@@ -6,7 +6,7 @@ import Avatar from '@/components/core/Avatar';
 import { Button } from '@/components/ui/button';
 import EmojiPicker, { EmojiClickData } from 'emoji-picker-react';
 import GifPicker from '@/components/post/GifPicker';
-import { MediaService } from '@/services/MediaService';
+import { MediaService } from '@/services/mediaService';
 import { useCreateReply } from '@/hooks/useReplies';
 
 interface UnifiedReplyComposerProps {

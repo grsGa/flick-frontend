@@ -117,7 +117,7 @@ const ProfileLayoutClient: React.FC<ProfileLayoutClientProps> = ({ username, chi
   }
 
   return (
-    <MainContainer showTopBar={true}>
+    <MainContainer showTopBar={true} topBarTitle={user.displayName || user.username}>
       {/* User Banner */}
       <div className="h-64 bg-gray-300 relative">
         {user.bannerUrl ? (

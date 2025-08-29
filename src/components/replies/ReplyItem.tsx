@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Post } from '../../graphql/types';
-import UnifiedReplyComposer from '../post/UnifiedReplyComposer';
+import UniversalReplyComposer from '../shared/UniversalReplyComposer';
 import { Button } from '../ui/button';
 import { useAuth } from '../../hooks/useAuth';
 import { useDeleteReply } from '../../hooks/useReplies';
@@ -183,7 +183,7 @@ export function ReplyItem({
           {/* Reply input */}
           {showReplyInput && canNest && (
             <div className="mt-3 pt-3">
-              <UnifiedReplyComposer
+              <UniversalReplyComposer
                 postId={reply.id}
                 placeholder={`回复 @${reply.author.username}...`}
                 onReplySuccess={onReplyCreated}

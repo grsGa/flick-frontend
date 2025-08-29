@@ -4,28 +4,42 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import Avatar from '@/components/core/Avatar';
 import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
 import EmojiPicker, { EmojiClickData } from 'emoji-picker-react';
 import GifPicker from '@/components/post/GifPicker';
 import { MediaService } from '@/services/mediaService';
 import { useCreateReply } from '@/hooks/useReplies';
+import { Send, Image, Smile, Loader2 } from 'lucide-react';
+import { toast } from '@/lib/toast';
 
-interface UnifiedReplyComposerProps {
+interface UniversalReplyComposerProps {
   postId: string;
   onReplySuccess?: () => void;
   placeholder?: string;
   className?: string;
+  // Feature flags for different modes
+  mode?: 'simple' | 'basic' | 'advanced';
+  showMediaUpload?: boolean;
+  showEmojiPicker?: boolean;
+  showGifPicker?: boolean;
+  maxLength?: number;
 }
 
-const UnifiedReplyComposer: React.FC<UnifiedReplyComposerProps> = ({
+const UniversalReplyComposer: React.FC<UniversalReplyComposerProps> = ({
   postId,
   onReplySuccess,
   placeholder = "Post your reply",
-  className = ""
+  className = "",
+  mode = 'advanced',
+  showMediaUpload = true,
+  showEmojiPicker = true,
+  showGifPicker = true,
+  maxLength = 280
 }) => {
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(mode === 'simple');
   const [replyText, setReplyText] = useState('');
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const [showGifPicker, setShowGifPicker] = useState(false);
+  const [showEmojiPickerState, setShowEmojiPickerState] = useState(false);
+  const [showGifPickerState, setShowGifPickerState] = useState(false);
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
   const [imagePreviewUrls, setImagePreviewUrls] = useState<string[]>([]);
   const [selectedGif, setSelectedGif] = useState<string | null>(null);
@@ -67,7 +81,6 @@ const UnifiedReplyComposer: React.FC<UnifiedReplyComposerProps> = ({
       const newContent = replyText.slice(0, start) + emojiData.emoji + replyText.slice(end);
       setReplyText(newContent);
       
-      // Focus back to textarea and set cursor position
       setTimeout(() => {
         if (textareaRef.current) {
           textareaRef.current.focus();
@@ -75,7 +88,7 @@ const UnifiedReplyComposer: React.FC<UnifiedReplyComposerProps> = ({
         }
       }, 0);
     }
-    setShowEmojiPicker(false);
+    setShowEmojiPickerState(false);
   };
 
   // Handle media file selection
@@ -83,15 +96,12 @@ const UnifiedReplyComposer: React.FC<UnifiedReplyComposerProps> = ({
     const files = e.target.files;
     if (!files) return;
 
-    // Convert FileList to array and limit to 4 media files
     const newFiles = Array.from(files).slice(0, 4 - selectedImages.length);
 
-    // Check for mutual exclusivity with GIF
     if (selectedGif && newFiles.length > 0) {
       setSelectedGif(null);
     }
 
-    // Filter image and video files
     const mediaFiles = newFiles.filter(file => {
       const isImage = file.type.startsWith('image/') && 
         ['image/jpeg', 'image/png', 'image/gif', 'image/webp'].includes(file.type);
@@ -105,40 +115,32 @@ const UnifiedReplyComposer: React.FC<UnifiedReplyComposerProps> = ({
       const updatedImages = [...selectedImages, ...mediaFiles].slice(0, 4);
       setSelectedImages(updatedImages);
 
-      // Create preview URLs for new files
       const newPreviewUrls = mediaFiles.map(file => URL.createObjectURL(file));
       setImagePreviewUrls(prev => [...prev, ...newPreviewUrls].slice(0, 4));
     }
 
-    // Reset file input
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
   };
 
-  // Handle image upload click
   const handleImageUploadClick = () => {
     fileInputRef.current?.click();
   };
 
-  // Remove selected image
   const handleRemoveImage = (index: number) => {
-    // Revoke the URL to free memory
     URL.revokeObjectURL(imagePreviewUrls[index]);
-    
     setSelectedImages(prev => prev.filter((_, i) => i !== index));
     setImagePreviewUrls(prev => prev.filter((_, i) => i !== index));
   };
 
-  // Handle GIF selection
   const handleGifSelect = (gifUrl: string) => {
     setSelectedGif(gifUrl);
-    setSelectedImages([]); // Clear images when GIF is selected
+    setSelectedImages([]);
     setImagePreviewUrls([]);
-    setShowGifPicker(false);
+    setShowGifPickerState(false);
   };
 
-  // Remove selected GIF
   const handleRemoveGif = () => {
     setSelectedGif(null);
   };
@@ -151,28 +153,26 @@ const UnifiedReplyComposer: React.FC<UnifiedReplyComposerProps> = ({
     try {
       let mediaUrls: string[] = [];
 
-      // Upload media if any
       if (selectedImages.length > 0) {
         setIsUploadingMedia(true);
         try {
           mediaUrls = await MediaService.uploadPostMedia(selectedImages);
         } catch (error) {
           console.error('Media upload failed:', error);
-          alert('媒体上传失败，请重试');
+          toast.error('媒体上传失败，请重试');
           return;
         } finally {
           setIsUploadingMedia(false);
         }
       }
 
-      // Submit reply via GraphQL mutation
       const result = await createReply({
         variables: {
           input: {
             postId,
             content: replyText,
             mediaUrls,
-            mentionedUsers: [] // TODO: Extract mentions from content
+            mentionedUsers: []
           }
         }
       });
@@ -184,14 +184,22 @@ const UnifiedReplyComposer: React.FC<UnifiedReplyComposerProps> = ({
       setSelectedImages([]);
       setImagePreviewUrls([]);
       setSelectedGif(null);
-      setIsExpanded(false);
+      setIsExpanded(mode === 'simple');
       
+      toast.success('回复发布成功！');
       onReplySuccess?.();
     } catch (error) {
       console.error('Reply submission failed:', error);
-      alert('回复发送失败，请重试');
+      toast.error('回复发送失败，请重试');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+      e.preventDefault();
+      handleSubmit();
     }
   };
 
@@ -203,6 +211,131 @@ const UnifiedReplyComposer: React.FC<UnifiedReplyComposerProps> = ({
     );
   }
 
+  // Simple mode - minimal UI
+  if (mode === 'simple') {
+    return (
+      <div className={`flex space-x-3 ${className}`}>
+        <Avatar 
+          src={user.avatarUrl || undefined}
+          alt={user.displayName || user.username}
+          size="md"
+        />
+        <div className="flex-1 space-y-3">
+          <Textarea
+            value={replyText}
+            onChange={(e) => setReplyText(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder={placeholder}
+            className="min-h-[80px] bg-transparent border-gray-200 resize-none focus:border-blue-500"
+            maxLength={maxLength}
+          />
+          <div className="flex items-center justify-between">
+            <span className={`text-sm ${
+              replyText.length > maxLength * 0.9 ? 'text-red-400' : 'text-gray-400'
+            }`}>
+              {replyText.length}/{maxLength}
+            </span>
+            <Button
+              onClick={handleSubmit}
+              disabled={!replyText.trim() || isSubmitting}
+              size="sm"
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              {isSubmitting ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <>
+                  <Send className="w-4 h-4 mr-1" />
+                  回复
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Basic mode - with basic controls
+  if (mode === 'basic') {
+    return (
+      <div className={`flex space-x-3 ${className}`}>
+        <Avatar 
+          src={user.avatarUrl || undefined}
+          alt={user.displayName || user.username}
+          size="md"
+        />
+        <div className="flex-1 space-y-3">
+          <Textarea
+            value={replyText}
+            onChange={(e) => setReplyText(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder={placeholder}
+            className="min-h-[100px] bg-transparent border-gray-200 resize-none focus:border-blue-500"
+            maxLength={maxLength}
+          />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              {showMediaUpload && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleImageUploadClick}
+                  className="text-blue-400 hover:text-blue-300 hover:bg-blue-400/10"
+                >
+                  <Image className="h-4 w-4" />
+                </Button>
+              )}
+              {showEmojiPicker && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-blue-400 hover:text-blue-300 hover:bg-blue-400/10"
+                  disabled
+                >
+                  <Smile className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+            <div className="flex items-center space-x-3">
+              <span className={`text-sm ${
+                replyText.length > maxLength * 0.9 ? 'text-red-400' : 'text-gray-400'
+              }`}>
+                {replyText.length}/{maxLength}
+              </span>
+              <Button
+                onClick={handleSubmit}
+                disabled={!replyText.trim() || isSubmitting}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-6"
+              >
+                {isSubmitting ? (
+                  <div className="flex items-center space-x-2">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>发布中...</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center space-x-2">
+                    <Send className="h-4 w-4" />
+                    <span>回复</span>
+                  </div>
+                )}
+              </Button>
+            </div>
+          </div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/gif,image/webp,video/mp4,video/webm"
+            multiple
+            onChange={handleImageSelect}
+            className="hidden"
+          />
+        </div>
+      </div>
+    );
+  }
+
+  // Advanced mode - full featured (existing UnifiedReplyComposer functionality)
   return (
     <div className={`bg-white ${className}`}>
       <div className="p-4">
@@ -212,9 +345,7 @@ const UnifiedReplyComposer: React.FC<UnifiedReplyComposerProps> = ({
             alt={user.displayName || user.username}
             size="md"
           />
-
           <div className="flex-1">
-            {/* Reply Input */}
             <div className="relative">
               <textarea
                 ref={textareaRef}
@@ -224,16 +355,16 @@ const UnifiedReplyComposer: React.FC<UnifiedReplyComposerProps> = ({
                   adjustTextareaHeight();
                 }}
                 onFocus={() => setIsExpanded(true)}
+                onKeyDown={handleKeyDown}
                 placeholder={placeholder}
                 className="w-full p-3 text-lg border border-gray-200 rounded-2xl resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 rows={isExpanded ? 3 : 1}
-                maxLength={280}
+                maxLength={maxLength}
               />
               
-              {/* Character count */}
               {isExpanded && (
                 <div className="absolute bottom-3 right-3 text-xs text-gray-400">
-                  {replyText.length}/280
+                  {replyText.length}/{maxLength}
                 </div>
               )}
             </div>
@@ -251,9 +382,7 @@ const UnifiedReplyComposer: React.FC<UnifiedReplyComposerProps> = ({
                     onClick={handleRemoveGif}
                     className="absolute top-2 right-2 w-6 h-6 bg-black bg-opacity-70 text-white rounded-full flex items-center justify-center hover:bg-opacity-90"
                   >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
+                    ×
                   </button>
                 </div>
               </div>
@@ -262,7 +391,7 @@ const UnifiedReplyComposer: React.FC<UnifiedReplyComposerProps> = ({
             {/* Media Previews */}
             {selectedImages.length > 0 && (
               <div className="mt-3">
-                {selectedImages.length === 1 && (
+                {selectedImages.length === 1 ? (
                   <div className="relative max-w-xs">
                     {selectedImages[0].type.startsWith('image/') ? (
                       <img 
@@ -281,14 +410,10 @@ const UnifiedReplyComposer: React.FC<UnifiedReplyComposerProps> = ({
                       onClick={() => handleRemoveImage(0)}
                       className="absolute top-2 right-2 w-6 h-6 bg-black bg-opacity-70 text-white rounded-full flex items-center justify-center hover:bg-opacity-90"
                     >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
+                      ×
                     </button>
                   </div>
-                )}
-                
-                {selectedImages.length > 1 && (
+                ) : (
                   <div className="grid grid-cols-2 gap-2 max-w-full">
                     {imagePreviewUrls.map((url, index) => (
                       <div key={index} className="relative overflow-hidden">
@@ -309,9 +434,7 @@ const UnifiedReplyComposer: React.FC<UnifiedReplyComposerProps> = ({
                           onClick={() => handleRemoveImage(index)}
                           className="absolute top-1 right-1 w-5 h-5 bg-black bg-opacity-70 text-white rounded-full flex items-center justify-center hover:bg-opacity-90"
                         >
-                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                          </svg>
+                          ×
                         </button>
                       </div>
                     ))}
@@ -324,81 +447,78 @@ const UnifiedReplyComposer: React.FC<UnifiedReplyComposerProps> = ({
             {isExpanded && (
               <div className="flex items-center justify-between mt-3">
                 <div className="flex items-center space-x-3">
-                  {/* Emoji 按钮 */}
-                  <div className="relative">
-                    <button 
-                      onClick={() => {
-                        setShowEmojiPicker(!showEmojiPicker);
-                        setShowGifPicker(false);
-                      }}
-                      className="p-2 rounded-full hover:bg-gray-100 text-blue-500"
-                    >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    </button>
-                    
-                    {/* Emoji Picker */}
-                    {showEmojiPicker && (
-                      <div className="absolute top-12 left-1/2 transform -translate-x-1/2 z-10 bg-white rounded-lg shadow-lg border border-gray-200">
-                        <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 w-4 h-4 bg-white border-l border-t border-gray-200 rotate-45"></div>
-                        <EmojiPicker
-                          onEmojiClick={handleEmojiSelect}
-                          width={300}
-                          height={350}
-                          previewConfig={{
-                            showPreview: false
-                          }}
-                        />
-                      </div>
-                    )}
-                  </div>
+                  {/* Emoji Button */}
+                  {showEmojiPicker && (
+                    <div className="relative">
+                      <button 
+                        onClick={() => {
+                          setShowEmojiPickerState(!showEmojiPickerState);
+                          setShowGifPickerState(false);
+                        }}
+                        className="p-2 rounded-full hover:bg-gray-100 text-blue-500"
+                      >
+                        <Smile className="w-5 h-5" />
+                      </button>
+                      
+                      {showEmojiPickerState && (
+                        <div className="absolute top-12 left-1/2 transform -translate-x-1/2 z-10 bg-white rounded-lg shadow-lg border border-gray-200">
+                          <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 w-4 h-4 bg-white border-l border-t border-gray-200 rotate-45"></div>
+                          <EmojiPicker
+                            onEmojiClick={handleEmojiSelect}
+                            width={300}
+                            height={350}
+                            previewConfig={{
+                              showPreview: false
+                            }}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  )}
 
-                  {/* GIF 按钮 */}
-                  <div className="relative">
+                  {/* GIF Button */}
+                  {showGifPicker && (
+                    <div className="relative">
+                      <button 
+                        onClick={() => {
+                          setShowGifPickerState(!showGifPickerState);
+                          setShowEmojiPickerState(false);
+                        }}
+                        disabled={selectedImages.length > 0}
+                        className={`p-2 rounded-full hover:bg-gray-100 transition-colors ${
+                          selectedImages.length > 0 ? 'text-gray-400 cursor-not-allowed' : 'text-blue-500'
+                        }`}
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 4V2a1 1 0 011-1h8a1 1 0 011 1v2m-9 0h10m-9 0a2 2 0 00-2 2v14a2 2 0 002 2h8a2 2 0 002-2V6a2 2 0 00-2-2" />
+                        </svg>
+                      </button>
+
+                      {showGifPickerState && (
+                        <div className="absolute top-10 left-1/2 transform -translate-x-1/2 z-20">
+                          <GifPicker
+                            isOpen={showGifPickerState}
+                            onClose={() => setShowGifPickerState(false)}
+                            onGifSelect={handleGifSelect}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  
+                  {/* Media Upload Button */}
+                  {showMediaUpload && (
                     <button 
-                      onClick={() => {
-                        setShowGifPicker(!showGifPicker);
-                        setShowEmojiPicker(false);
-                      }}
-                      disabled={selectedImages.length > 0}
+                      onClick={handleImageUploadClick}
+                      disabled={selectedImages.length >= 4 || !!selectedGif}
                       className={`p-2 rounded-full hover:bg-gray-100 transition-colors ${
-                        selectedImages.length > 0 ? 'text-gray-400 cursor-not-allowed' : 'text-blue-500'
+                        selectedImages.length >= 4 || !!selectedGif ? 'text-gray-400 cursor-not-allowed' : 'text-blue-500'
                       }`}
                     >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 4V2a1 1 0 011-1h8a1 1 0 011 1v2m-9 0h10m-9 0a2 2 0 00-2 2v14a2 2 0 002 2h8a2 2 0 002-2V6a2 2 0 00-2-2" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 9h6v6H9z" />
-                        <circle cx="12" cy="12" r="1" fill="currentColor" />
-                      </svg>
+                      <Image className="w-5 h-5" />
                     </button>
-
-                    {/* GIF Picker */}
-                    {showGifPicker && (
-                      <div className="absolute top-10 left-1/2 transform -translate-x-1/2 z-20">
-                        <GifPicker
-                          isOpen={showGifPicker}
-                          onClose={() => setShowGifPicker(false)}
-                          onGifSelect={handleGifSelect}
-                        />
-                      </div>
-                    )}
-                  </div>
+                  )}
                   
-                  {/* 媒体上传按钮 */}
-                  <button 
-                    onClick={handleImageUploadClick}
-                    disabled={selectedImages.length >= 4 || !!selectedGif}
-                    className={`p-2 rounded-full hover:bg-gray-100 transition-colors ${
-                      selectedImages.length >= 4 || !!selectedGif ? 'text-gray-400 cursor-not-allowed' : 'text-blue-500'
-                    }`}
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                  </button>
-                  
-                  {/* Hidden File Input */}
                   <input
                     ref={fileInputRef}
                     type="file"
@@ -409,7 +529,6 @@ const UnifiedReplyComposer: React.FC<UnifiedReplyComposerProps> = ({
                   />
                 </div>
 
-                {/* Submit Button */}
                 <Button
                   onClick={handleSubmit}
                   disabled={(!replyText.trim() && selectedImages.length === 0 && !selectedGif) || isSubmitting || isUploadingMedia}
@@ -430,4 +549,4 @@ const UnifiedReplyComposer: React.FC<UnifiedReplyComposerProps> = ({
   );
 };
 
-export default UnifiedReplyComposer;
+export default UniversalReplyComposer;

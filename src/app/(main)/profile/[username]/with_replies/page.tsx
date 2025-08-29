@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import client from '@/lib/apollo-client';
 import { gql } from '@apollo/client';
 import { User, PageInfo, Post } from '@/graphql/types';
-import RepliesClient from '@/components/profile/RepliesClient';
+import ProfileContentClient from '@/components/shared/ProfileContentClient';
 import ProfileTabs from '@/components/profile/ProfileTabs';
 
 const GET_USER = gql`
@@ -92,8 +92,10 @@ export default async function RepliesPage({ params }: { params: Promise<{ userna
   const { user, posts, pageInfo } = data;
 
   return (
-    <RepliesClient
+    <ProfileContentClient
+      username={username}
       userId={user.id}
+      contentType="replies"
       initialPosts={posts}
       initialPageInfo={pageInfo}
     />

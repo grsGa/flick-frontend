@@ -10,10 +10,10 @@ import Avatar from '@/components/core/Avatar';
 import { Separator } from '@/components/ui/separator';
 import { formatDistanceToNow } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
-import MediaGrid from '@/components/media/MediaGrid';
+import OptimizedMediaGrid from '@/components/media/OptimizedMediaGrid';
 import PostInteractionButtons from '@/components/post/PostInteractionButtons';
 import { ReplyList } from '@/components/replies/ReplyList';
-import UnifiedReplyComposer from '@/components/post/UnifiedReplyComposer';
+import UniversalReplyComposer from '@/components/shared/UniversalReplyComposer';
 import { Post } from '@/graphql/types';
 
 interface PostDetailViewProps {
@@ -119,7 +119,7 @@ export default function PostDetailView({ post }: PostDetailViewProps) {
             {/* Media */}
             {post.media && post.media.length > 0 && (
               <div className="mb-4">
-                <MediaGrid 
+                <OptimizedMediaGrid 
                   media={post.media} 
                   className="rounded-2xl overflow-hidden"
                   post={post}
@@ -181,7 +181,7 @@ export default function PostDetailView({ post }: PostDetailViewProps) {
 
         {/* Reply Composer */}
         <div ref={replyComposerRef} className="p-4">
-          <UnifiedReplyComposer 
+          <UniversalReplyComposer 
             postId={post.id}
             onReplySuccess={() => {
               // 回复成功后可以刷新回复列表

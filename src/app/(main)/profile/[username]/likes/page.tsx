@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import client from '@/lib/apollo-client';
 import { gql } from '@apollo/client';
 import { User, PageInfo, Post } from '@/graphql/types';
-import LikesClient from '@/components/profile/LikesClient';
+import ProfileContentClient from '@/components/shared/ProfileContentClient';
 import ProfileTabs from '@/components/profile/ProfileTabs';
 
 const GET_USER = gql`
@@ -92,8 +92,10 @@ export default async function LikesPage({ params }: { params: Promise<{ username
   const { user, posts, pageInfo } = data;
 
   return (
-    <LikesClient
+    <ProfileContentClient
+      username={username}
       userId={user.id}
+      contentType="likes"
       initialPosts={posts}
       initialPageInfo={pageInfo}
     />

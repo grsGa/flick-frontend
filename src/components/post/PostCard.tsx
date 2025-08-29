@@ -5,7 +5,7 @@ import { Post } from '@/graphql/types';
 import Avatar from '@/components/core/Avatar';
 import UserName from '@/components/core/UserName';
 import TimeAgo from '@/components/core/TimeAgo';
-import MediaGrid from '@/components/media/MediaGrid';
+import OptimizedMediaGrid from '@/components/media/OptimizedMediaGrid';
 import PostInteractionButtons from '@/components/post/PostInteractionButtons';
 
 interface PostCardProps {
@@ -77,10 +77,9 @@ const PostCard: React.FC<PostCardProps> = ({
           {/* Media */}
           {post.media && post.media.length > 0 && (
             <div className="mb-2" onClick={handleActionClick}>
-              <MediaGrid 
+              <OptimizedMediaGrid 
                 media={post.media} 
-                priority="medium" 
-                optimized={true}
+                priority="medium"
                 post={post}
                 onLike={() => onLike?.(post.id)}
                 onReply={() => onReply?.(post.id)}

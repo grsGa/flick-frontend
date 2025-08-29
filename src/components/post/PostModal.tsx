@@ -307,6 +307,10 @@ const PostModal: React.FC<PostModalProps> = ({ isOpen, onClose }) => {
           {
             query: HOME_FEED_QUERY,
             variables: { first: -1 }
+          },
+          {
+            query: USER_POSTS_QUERY,
+            variables: { username: user.username, first: 10 }
           }
         ],
         awaitRefetchQueries: false // Don't wait for refetch to complete

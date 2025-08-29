@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Post } from '../../graphql/types';
 import { usePostReplies } from '../../hooks/useReplies';
 import { ReplyItem } from './ReplyItem';
-import UnifiedReplyComposer from '../post/UnifiedReplyComposer';
+import UniversalReplyComposer from '../shared/UniversalReplyComposer';
 import { Button } from '../ui/button';
 import { Loader2, MessageCircle, ChevronDown, ChevronUp } from 'lucide-react';
 
@@ -95,7 +95,7 @@ export function ReplyList({
     <div className={`space-y-4 ${className}`}>
       {/* Reply input */}
       {showReplyInput && (
-        <UnifiedReplyComposer
+        <UniversalReplyComposer
           postId={postId}
           onReplySuccess={handleReplyCreated}
           placeholder="发布你的回复"

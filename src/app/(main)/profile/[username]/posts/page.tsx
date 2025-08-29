@@ -2,7 +2,7 @@ import React from 'react';
 import { notFound } from 'next/navigation';
 import client from '@/lib/apollo-client';
 import { Post, PageInfo } from '@/graphql/types';
-import PostsClient from '@/components/profile/PostsClient';
+import ProfileContentClient from '@/components/shared/ProfileContentClient';
 import { USER_POSTS_QUERY } from '@/graphql/queries';
 
 async function getPostsPageData(username: string) {
@@ -41,8 +41,10 @@ export default async function ProfilePostsPage({ params }: { params: Promise<{ u
   const { posts, pageInfo } = data;
 
   return (
-    <PostsClient
+    <ProfileContentClient
       username={username}
+      userId=""
+      contentType="posts"
       initialPosts={posts}
       initialPageInfo={pageInfo}
     />

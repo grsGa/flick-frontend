@@ -14,6 +14,14 @@ import {
   LIKE_POST_MUTATION 
 } from '../graphql/queries';
 
+// Re-export for backward compatibility
+export { 
+  HOME_FEED_QUERY, 
+  USER_POSTS_QUERY, 
+  CREATE_POST_MUTATION, 
+  LIKE_POST_MUTATION 
+} from '../graphql/queries';
+
 
 
 

@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import client from '@/lib/apollo-client';
 import { Post, PageInfo } from '@/graphql/types';
 import PostsClient from '@/components/profile/PostsClient';
-import { USER_POSTS_QUERY } from '@/hooks/usePosts';
+import { USER_POSTS_QUERY } from '@/graphql/queries';
 
 async function getPostsPageData(username: string) {
   try {

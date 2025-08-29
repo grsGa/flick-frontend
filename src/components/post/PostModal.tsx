@@ -5,7 +5,8 @@ import { createPortal } from 'react-dom';
 import Avatar from '@/components/core/Avatar';
 import EmojiPicker, { EmojiClickData } from 'emoji-picker-react';
 import { useAuth } from '@/hooks/useAuth';
-import { useCreatePost } from '@/hooks/usePosts';
+import { useApolloClient } from '@apollo/client';
+import { CREATE_POST_MUTATION, HOME_FEED_QUERY, USER_POSTS_QUERY } from '@/hooks/usePosts';
 import { MediaService } from '@/services/mediaService';
 import GifPicker from './GifPicker';
 
@@ -15,12 +16,9 @@ interface PostModalProps {
 }
 
 const PostModal: React.FC<PostModalProps> = ({ isOpen, onClose }) => {
-  console.log('[PostModal] Component rendered, isOpen:', isOpen);
-  
   const { user } = useAuth();
-  const { createPost, loading: postLoading, error: postError } = useCreatePost();
+  const client = useApolloClient();
   
-  console.log('[PostModal] useCreatePost hook result:', { createPost: !!createPost, postLoading, postError });
   const [content, setContent] = useState('');
   const [selectedGif, setSelectedGif] = useState<string | null>(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
@@ -28,6 +26,7 @@ const PostModal: React.FC<PostModalProps> = ({ isOpen, onClose }) => {
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
   const [imagePreviewUrls, setImagePreviewUrls] = useState<string[]>([]);
   const [isUploadingMedia, setIsUploadingMedia] = useState(false);
+  const [postLoading, setPostLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Reply permission state
@@ -47,9 +46,16 @@ const PostModal: React.FC<PostModalProps> = ({ isOpen, onClose }) => {
   // Cleanup URLs on unmount
   useEffect(() => {
     return () => {
-      imagePreviewUrls.forEach(url => URL.revokeObjectURL(url));
+      // Clean up all URLs when component unmounts
+      imagePreviewUrls.forEach(url => {
+        try {
+          URL.revokeObjectURL(url);
+        } catch (e) {
+          // Ignore errors for already revoked URLs
+        }
+      });
     };
-  }, []);
+  }, []); // Only run on unmount
 
   // Click outside handler for reply permission dropdown
   useEffect(() => {
@@ -245,96 +251,90 @@ const PostModal: React.FC<PostModalProps> = ({ isOpen, onClose }) => {
   };
 
   const handlePost = async () => {
-    if (content.trim() || selectedGif || selectedImages.length > 0 || pollData) {
-      console.log('[PostModal] Starting post submission:', { 
-        content, 
-        gif: selectedGif, 
-        images: selectedImages,
-        poll: pollData
-      });
+    if (!user) return;
 
-      if (!user?.id) {
-        console.log('[PostModal] Submit blocked - user not authenticated');
-        alert('请先登录');
-        return;
-      }
-      
-      try {
-        // Build input data for GraphQL mutation
-        const inputData: any = {
-          content: content.trim(),
-        };
+    const maxLength = 280;
+    // Use byte length for proper emoji counting (UTF-8 encoding)
+    const contentBytes = new TextEncoder().encode(content.trim()).length;
+    if (contentBytes > maxLength) {
+      alert(`帖子内容不能超过${maxLength}个字符，当前${contentBytes}个字符`);
+      return;
+    }
 
-        // Add reply permission if not default
-        if (replyPermission !== 'EVERYONE') {
-          inputData.replyPermission = replyPermission;
-        }
+    if (!content.trim() && !selectedGif && selectedImages.length === 0 && !pollData) {
+      return;
+    }
 
-        // Handle media uploads
-        if (selectedImages.length > 0) {
-          console.log('[PostModal] Uploading media files...');
-          setIsUploadingMedia(true);
+    setPostLoading(true);
+
+    try {
+      const inputData: any = {
+        content: content.trim(),
+        // visibility: 'public', // Omit to use backend default
+        // replyPermission: 'EVERYONE', // Omit to use backend default
+      };
+
+      if (selectedImages.length > 0) {
+        setIsUploadingMedia(true);
+        try {
+          const mediaUrls = await MediaService.uploadPostMedia(selectedImages, user.id);
+          inputData.mediaUrls = mediaUrls;
+        } catch (uploadError: any) {
+          let errorMessage = 'Unknown error';
+          if (uploadError.response?.data?.error) {
+            errorMessage = uploadError.response.data.error;
+          } else if (uploadError.message) {
+            errorMessage = uploadError.message;
+          }
           
-          try {
-            const mediaUrls = await MediaService.uploadPostMedia(selectedImages, user.id);
-            console.log('[PostModal] Media uploaded successfully:', mediaUrls);
-            inputData.mediaUrls = mediaUrls;
-          } catch (uploadError) {
-            console.error('[PostModal] Media upload failed:', uploadError);
-            const errorMessage = uploadError instanceof Error ? uploadError.message : '媒体上传失败，请重试';
-            
-            // Show user-friendly error messages
-            if (errorMessage.includes('File size too large')) {
-              alert('文件过大！图片最大10MB，视频最大100MB');
-            } else if (errorMessage.includes('File type not supported')) {
-              alert('文件格式不支持！请使用JPG、PNG、GIF、WebP格式的图片或MP4、WebM、MOV、AVI格式的视频');
-            } else if (errorMessage.includes('File too large or invalid format')) {
-              alert('文件过大或格式无效！请检查文件大小和格式');
-            } else {
-              alert(`上传失败：${errorMessage}`);
-            }
-            
-            setIsUploadingMedia(false);
-            return;
+          if (errorMessage.includes('File size exceeds maximum allowed size')) {
+            alert('文件大小超过限制，请选择较小的文件');
+          } else {
+            alert(`上传失败：${errorMessage}`);
           }
           
           setIsUploadingMedia(false);
+          setPostLoading(false);
+          return;
         }
-
-        // TODO: Handle GIF and poll data in future iterations
-        if (selectedGif) {
-          console.log('[PostModal] GIF support not yet implemented');
-        }
-        if (pollData) {
-          console.log('[PostModal] Poll support not yet implemented');
-        }
-
-        console.log('[PostModal] Calling createPost with input:', inputData);
-        
-        const result = await createPost({
-          variables: {
-            input: inputData,
-          },
-        });
-
-        console.log('[PostModal] Post created successfully:', result);
-        
-        // Cleanup on success
-        setContent('');
-        setSelectedGif(null);
-        imagePreviewUrls.forEach(url => URL.revokeObjectURL(url));
-        setSelectedImages([]);
-        setImagePreviewUrls([]);
-        setPollData(null);
-        setShowPollEditor(false);
-        setReplyPermission('EVERYONE');
-        onClose();
-        
-      } catch (err: any) {
-        console.error('[PostModal] Failed to create post:', err);
         setIsUploadingMedia(false);
-        // Don't close modal on error so user can retry
       }
+
+      const result = await client.mutate({
+        mutation: CREATE_POST_MUTATION,
+        variables: { input: inputData },
+        refetchQueries: [
+          {
+            query: HOME_FEED_QUERY,
+            variables: { first: -1 }
+          }
+        ],
+        awaitRefetchQueries: false // Don't wait for refetch to complete
+      });
+
+      // Cleanup on success
+      setContent('');
+      setSelectedGif(null);
+      imagePreviewUrls.forEach(url => URL.revokeObjectURL(url));
+      setSelectedImages([]);
+      setImagePreviewUrls([]);
+      setPollData(null);
+      setShowPollEditor(false);
+      setReplyPermission('EVERYONE');
+      onClose();
+      
+    } catch (err: any) {
+      console.error('[PostModal] Failed to create post:', err);
+      
+      if (err.message?.includes('cannot exceed 280 characters')) {
+        const contentBytes = new TextEncoder().encode(content.trim()).length;
+        alert(`帖子内容不能超过280个字符，当前${contentBytes}个字符`);
+      } else {
+        alert('发布失败，请重试');
+      }
+    } finally {
+      setPostLoading(false);
+      setIsUploadingMedia(false);
     }
   };
 
@@ -390,8 +390,8 @@ const PostModal: React.FC<PostModalProps> = ({ isOpen, onClose }) => {
               
               {/* Character Count */}
               <div className="flex justify-end mt-2">
-                <span className={`text-sm ${content.length > maxLength * 0.8 ? 'text-red-500' : 'text-gray-500'}`}>
-                  {content.length}/{maxLength}
+                <span className={`text-sm ${new TextEncoder().encode(content).length > maxLength * 0.8 ? 'text-red-500' : 'text-gray-500'}`}>
+                  {new TextEncoder().encode(content).length}/{maxLength}
                 </span>
               </div>
 
@@ -805,9 +805,9 @@ const PostModal: React.FC<PostModalProps> = ({ isOpen, onClose }) => {
           {/* Post Button */}
           <button
             onClick={handlePost}
-            disabled={postLoading || isUploadingMedia || (!content.trim() && !selectedGif && selectedImages.length === 0 && !pollData) || content.length > maxLength}
+            disabled={postLoading || isUploadingMedia || (!content.trim() && !selectedGif && selectedImages.length === 0 && !pollData) || new TextEncoder().encode(content).length > maxLength}
             className={`px-6 py-2 rounded-full font-bold text-sm transition-colors ${
-              (content.trim() || selectedGif || selectedImages.length > 0 || pollData) && content.length <= maxLength && !postLoading && !isUploadingMedia
+              (content.trim() || selectedGif || selectedImages.length > 0 || pollData) && new TextEncoder().encode(content).length <= maxLength && !postLoading && !isUploadingMedia
                 ? 'bg-black text-white hover:bg-gray-800'
                 : 'bg-gray-300 text-gray-500 cursor-not-allowed'
             }`}
@@ -820,6 +820,8 @@ const PostModal: React.FC<PostModalProps> = ({ isOpen, onClose }) => {
     </div>
   );
 
+  if (!isOpen) return null;
+  
   return typeof window !== 'undefined' ? createPortal(modalContent, document.body) : null;
 };
 

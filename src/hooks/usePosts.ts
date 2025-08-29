@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useApolloClient } from '@apollo/client';
+import { useCallback, useRef, useEffect, useMemo } from 'react';
 import { gql } from '@apollo/client';
 
 // GraphQL queries and mutations
@@ -303,7 +304,7 @@ export const USER_POSTS_QUERY = gql`
   }
 `;
 
-const CREATE_POST_MUTATION = gql`
+export const CREATE_POST_MUTATION = gql`
   mutation CreatePost($input: CreatePostInput!) {
     createPost(input: $input) {
       id
@@ -385,72 +386,87 @@ export function useUserPosts(username: string, first: number = 10, after?: strin
   };
 }
 
+// Create a stable hook instance to prevent re-initialization
+let hookInstance: any = null;
+
 export function useCreatePost() {
   const client = useApolloClient();
   
-  console.log('[useCreatePost] Hook initialized');
+  // Only log initialization once per component lifecycle
+  const initRef = useRef(false);
+  if (!initRef.current) {
+    console.log('[useCreatePost] Hook initialized');
+    initRef.current = true;
+  }
   
-  const [createPost, { loading, error }] = useMutation(CREATE_POST_MUTATION, {
-    onCompleted: async (data) => {
-      console.log('[useCreatePost] onCompleted callback triggered with data:', data);
-      
-      const username = data?.createPost?.author?.username;
-      if (!username) {
-        console.error('[useCreatePost] No username found in response');
-        return;
-      }
-
-      try {
-        console.log('[useCreatePost] Starting simplified cache update for username:', username);
-        
-        // 修复策略: 分别为不同查询使用正确的variables
-        await Promise.all([
-          // 刷新首页时间线 - 不需要username参数
-          client.refetchQueries({
-            include: [HOME_FEED_QUERY],
-            variables: { first: 10, after: null }
-          }),
-          // 刷新用户帖子列表 - 需要username参数
-          client.refetchQueries({
-            include: [USER_POSTS_QUERY],
-            variables: { username, first: 10, after: null }
-          })
-        ]);
-        
-        console.log('[useCreatePost] Cache refetch completed successfully');
-
-      } catch (error) {
-        console.error('[useCreatePost] Cache update failed:', error);
-        
-        // 简化的备用策略：只清除相关字段
-        client.cache.evict({ fieldName: 'homeFeed' });
-        client.cache.evict({ fieldName: 'userPosts' });
-        client.cache.gc();
-        console.log('[useCreatePost] Cache eviction completed');
-      }
-    },
-    onError: (error) => {
-      console.error('[useCreatePost] onError callback triggered:', error);
+  // Stable callbacks that don't change
+  const onCompleted = useMemo(() => async (data: any) => {
+    console.log('[useCreatePost] onCompleted callback triggered with data:', data);
+    
+    const username = data?.createPost?.author?.username;
+    if (!username) {
+      console.error('[useCreatePost] No username found in response');
+      return;
     }
-  });
 
-  const wrappedCreatePost = async (options: any) => {
-    console.log('[useCreatePost] wrappedCreatePost called with options:', options);
     try {
-      const result = await createPost(options);
-      console.log('[useCreatePost] createPost returned result:', result);
+      console.log('[useCreatePost] Starting simplified cache update for username:', username);
+      
+      // 修复策略: 分别为不同查询使用正确的variables
+      await Promise.all([
+        // 刷新首页时间线 - 不需要username参数
+        client.refetchQueries({
+          include: [HOME_FEED_QUERY],
+          variables: { first: 10, after: null }
+        }),
+        // 刷新用户帖子列表 - 需要username参数
+        client.refetchQueries({
+          include: [USER_POSTS_QUERY],
+          variables: { username, first: 10, after: null }
+        })
+      ]);
+      
+      console.log('[useCreatePost] Cache refetch completed successfully');
+
+    } catch (error) {
+      console.error('[useCreatePost] Cache update failed:', error);
+      
+      // 简化的备用策略：只清除相关字段
+      client.cache.evict({ fieldName: 'homeFeed' });
+      client.cache.evict({ fieldName: 'userPosts' });
+      client.cache.gc();
+      console.log('[useCreatePost] Cache eviction completed');
+    }
+  }, [client]);
+
+  const onError = useMemo(() => (error: any) => {
+    console.error('[useCreatePost] onError callback triggered:', error);
+  }, []);
+  
+  // Use useMutation with stable callbacks
+  const [createPostMutation, mutationResult] = useMutation(CREATE_POST_MUTATION, {
+    onCompleted,
+    onError
+  });
+  
+  // Create a stable createPost function
+  const createPost = useMemo(() => async (options: any) => {
+    console.log('[useCreatePost] createPost called with options:', options);
+    try {
+      const result = await createPostMutation(options);
+      console.log('[useCreatePost] createPostMutation returned result:', result);
       return result;
     } catch (error) {
-      console.error('[useCreatePost] createPost threw error:', error);
+      console.error('[useCreatePost] createPostMutation threw error:', error);
       throw error;
     }
-  };
+  }, [createPostMutation]);
 
-  return {
-    createPost: wrappedCreatePost,
-    loading,
-    error,
-  };
+  return useMemo(() => ({
+    createPost,
+    loading: mutationResult.loading,
+    error: mutationResult.error,
+  }), [createPost, mutationResult.loading, mutationResult.error]);
 }
 
 export function useLikePost() {

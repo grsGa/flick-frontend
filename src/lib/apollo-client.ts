@@ -101,10 +101,12 @@ const splitLink = typeof window !== 'undefined' && wsLink
     )
   : httpLink;
 
-// Create Apollo Client
+// Create Apollo Client with enhanced cache debugging
 const client = new ApolloClient({
   link: from([errorLink, responseLink, requestLink, authLink, splitLink]),
   cache: new InMemoryCache({
+    // Add cache debugging
+    resultCaching: false, // Disable result caching temporarily for debugging
     typePolicies: {
       Query: {
         fields: {
@@ -112,14 +114,13 @@ const client = new ApolloClient({
             keyArgs: ['username'],
             merge(existing, incoming, { args }) {
               console.log('[Apollo Cache] Merging userPosts:', { existing, incoming, args });
+              console.log('[Apollo Cache] userPosts merge triggered - potential re-render cause');
               if (!existing) {
                 return incoming;
               }
               if (!args?.after) {
-                // 如果没有after参数，说明是初始查询，直接返回新数据
                 return incoming;
               }
-              // 合并数据：保留现有edges，追加新的edges
               return {
                 ...incoming,
                 edges: [...(existing.edges || []), ...(incoming.edges || [])],
@@ -130,6 +131,7 @@ const client = new ApolloClient({
             keyArgs: [],
             merge(existing, incoming, { args }) {
               console.log('[Apollo Cache] Merging homeFeed:', { existing, incoming, args });
+              console.log('[Apollo Cache] homeFeed merge triggered - potential re-render cause');
               return incoming;
             }
           }
@@ -140,6 +142,7 @@ const client = new ApolloClient({
           edges: {
             merge(existing = [], incoming = []) {
               console.log('[Apollo Cache] Merging PostConnection edges:', { existing: existing.length, incoming: incoming.length });
+              console.log('[Apollo Cache] PostConnection merge triggered - potential re-render cause');
               return incoming;
             }
           }

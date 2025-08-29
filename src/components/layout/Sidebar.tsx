@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
@@ -73,6 +73,11 @@ const Sidebar: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isPostModalOpen, setIsPostModalOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  // Stable callback to prevent PostModal re-renders
+  const handleClosePostModal = useCallback(() => {
+    setIsPostModalOpen(false);
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -198,7 +203,7 @@ const Sidebar: React.FC = () => {
       {/* Post Modal */}
       <PostModal 
         isOpen={isPostModalOpen} 
-        onClose={() => setIsPostModalOpen(false)} 
+        onClose={handleClosePostModal} 
       />
     </div>
   );

@@ -131,14 +131,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   // 更新用户信息方法
   const updateUser = useCallback((updatedUser: Partial<User>) => {
-    if (user) {
-      const newUser = { ...user, ...updatedUser };
-      setUser(newUser);
-      if (typeof window !== "undefined") {
-        localStorage.setItem("user", JSON.stringify(newUser));
+    setUser(currentUser => {
+      if (currentUser) {
+        const newUser = { ...currentUser, ...updatedUser };
+        if (typeof window !== "undefined") {
+          localStorage.setItem("user", JSON.stringify(newUser));
+        }
+        return newUser;
       }
-    }
-  }, [user]);
+      return currentUser;
+    });
+  }, []);
 
   // 登出方法
   const logout = useCallback(() => {

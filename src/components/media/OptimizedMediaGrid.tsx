@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Media, MediaType, MediaVariant, Post } from '@/graphql/types';
 import ImageViewer from './ImageViewer';
 
@@ -26,6 +26,8 @@ const OptimizedMediaGrid: React.FC<OptimizedMediaGridProps> = ({
   const [imageAspectRatios, setImageAspectRatios] = useState<Map<string, number>>(new Map());
   const [viewerOpen, setViewerOpen] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [autoPlayVideos, setAutoPlayVideos] = useState<Set<string>>(new Set());
+  const videoRefs = useRef<Map<string, HTMLVideoElement>>(new Map());
 
   if (media.length === 0) return null;
 
@@ -62,14 +64,14 @@ const OptimizedMediaGrid: React.FC<OptimizedMediaGridProps> = ({
   }, [priority]);
 
   // 获取视频预览图
-  const getVideoPreview = useCallback((item: Media): string => {
+  const getVideoPreview = useCallback((item: Media): string | undefined => {
     if (!item.variants) {
-      return item.url; // 如果没有variants，使用原始URL
+      return undefined; // 如果没有variants，不设置预览图
     }
     
-    return item.variants.preview?.url || 
-           item.variants.thumbnail?.url || 
-           item.url;
+    // 只有当存在专门的预览图或缩略图时才返回
+    const posterUrl = item.variants.preview?.url || item.variants.thumbnail?.url;
+    return posterUrl;
   }, []);
 
   // 获取视频播放URL
@@ -82,9 +84,8 @@ const OptimizedMediaGrid: React.FC<OptimizedMediaGridProps> = ({
       case 'low':
         return item.variants.lowRes?.url || item.url;
       case 'high':
-        return item.variants.highRes?.url || 
-               item.variants.midRes?.url || 
-               item.url;
+        const videoUrl = item.variants.highRes?.url || item.variants.midRes?.url || item.variants.lowRes?.url || item.variants.preview?.url || item.url;
+        return videoUrl;
       default: // mid
         return item.variants.midRes?.url || 
                item.variants.lowRes?.url || 
@@ -120,6 +121,53 @@ const OptimizedMediaGrid: React.FC<OptimizedMediaGridProps> = ({
     if (aspectRatio < 0.75) return 'portrait'; // 竖图
     return 'square'; // 正方形
   }, [imageAspectRatios]);
+
+  // 视频自动播放逻辑
+  const handleVideoIntersection = useCallback((entries: IntersectionObserverEntry[]) => {
+    entries.forEach((entry) => {
+      const videoId = entry.target.getAttribute('data-video-id');
+      if (!videoId) return;
+
+      const video = videoRefs.current.get(videoId);
+      if (!video) return;
+
+      if (entry.isIntersecting && entry.intersectionRatio > 0.5) {
+        // 视频进入视口且可见度超过50%时自动播放
+        if (!autoPlayVideos.has(videoId)) {
+          video.muted = true; // 静音自动播放
+          video.play().catch(console.error);
+          setAutoPlayVideos(prev => new Set([...prev, videoId]));
+        }
+      } else {
+        // 视频离开视口时暂停
+        if (autoPlayVideos.has(videoId)) {
+          video.pause();
+          setAutoPlayVideos(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(videoId);
+            return newSet;
+          });
+        }
+      }
+    });
+  }, [autoPlayVideos]);
+
+  // 设置Intersection Observer
+  useEffect(() => {
+    const observer = new IntersectionObserver(handleVideoIntersection, {
+      threshold: [0.5], // 当视频50%可见时触发
+      rootMargin: '0px'
+    });
+
+    // 观察所有视频元素
+    videoRefs.current.forEach((video) => {
+      observer.observe(video);
+    });
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [handleVideoIntersection]);
 
   // 渲染单个媒体项
   const renderMediaItem = useCallback((item: Media, index: number, isGrid = false) => {
@@ -163,20 +211,58 @@ const OptimizedMediaGrid: React.FC<OptimizedMediaGridProps> = ({
       return (
         <div key={item.id} className={`relative overflow-hidden ${isGrid ? 'h-full' : ''}`}>
           <video 
+            ref={(el) => {
+              if (el) {
+                videoRefs.current.set(item.id, el);
+              } else {
+                videoRefs.current.delete(item.id);
+              }
+            }}
+            data-video-id={item.id}
             src={videoUrl}
-            poster={previewUrl} // 使用预览图作为封面
+            poster={previewUrl} // 使用预览图作为封面，如果没有则为undefined
             controls
             preload="metadata" // 只预加载元数据，不预加载视频内容
+            playsInline // 在移动设备上内联播放
+            loop // 循环播放
             className={`
               w-full h-full
               ${isGrid ? 'object-cover' : 'object-contain max-h-96'}
             `}
+            onError={(e) => {
+              console.error('[OptimizedMediaGrid] Video load error:', {
+                videoUrl,
+                previewUrl,
+                mediaId: item.id,
+                error: e
+              });
+            }}
+            onLoadStart={() => {
+              console.log('[OptimizedMediaGrid] Video load started:', {
+                videoUrl,
+                mediaId: item.id
+              });
+            }}
+            onClick={(e) => {
+              // 点击视频时切换静音状态
+              const video = e.currentTarget;
+              video.muted = !video.muted;
+            }}
           />
           
           {/* 视频标识 */}
           <div className="absolute top-2 right-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded text-xs">
             {item.duration ? `${Math.floor(item.duration / 60)}:${String(item.duration % 60).padStart(2, '0')}` : 'VIDEO'}
           </div>
+          
+          {/* 静音指示器 */}
+          {autoPlayVideos.has(item.id) && (
+            <div className="absolute bottom-2 right-2 bg-black bg-opacity-50 text-white p-1 rounded">
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.617.793L4.828 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.828l3.555-3.793A1 1 0 019.383 3.076zM12 6.414l1.293-1.293a1 1 0 011.414 1.414L13.414 8l1.293 1.293a1 1 0 01-1.414 1.414L12 9.414l-1.293 1.293a1 1 0 01-1.414-1.414L10.586 8 9.293 6.707a1 1 0 011.414-1.414L12 6.414z" clipRule="evenodd" />
+              </svg>
+            </div>
+          )}
         </div>
       );
     }

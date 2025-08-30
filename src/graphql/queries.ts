@@ -54,6 +54,30 @@ export const USER_POSTS_QUERY = gql`
                 height
                 size
               }
+              preview {
+                url
+                width
+                height
+                size
+              }
+              lowRes {
+                url
+                width
+                height
+                size
+              }
+              midRes {
+                url
+                width
+                height
+                size
+              }
+              highRes {
+                url
+                width
+                height
+                size
+              }
             }
           }
           interaction {
@@ -124,6 +148,30 @@ export const HOME_FEED_QUERY = gql`
                 size
               }
               original {
+                url
+                width
+                height
+                size
+              }
+              preview {
+                url
+                width
+                height
+                size
+              }
+              lowRes {
+                url
+                width
+                height
+                size
+              }
+              midRes {
+                url
+                width
+                height
+                size
+              }
+              highRes {
                 url
                 width
                 height
@@ -275,6 +323,30 @@ export const GET_FOLLOWING_TIMELINE = gql`
                 height
                 size
               }
+              preview {
+                url
+                width
+                height
+                size
+              }
+              lowRes {
+                url
+                width
+                height
+                size
+              }
+              midRes {
+                url
+                width
+                height
+                size
+              }
+              highRes {
+                url
+                width
+                height
+                size
+              }
             }
           }
           stats {
@@ -327,6 +399,65 @@ export const CREATE_POST_MUTATION = gql`
         id
         url
         type
+        mimeType
+        width
+        height
+        variants {
+          thumbnail {
+            url
+            width
+            height
+            size
+          }
+          small {
+            url
+            width
+            height
+            size
+          }
+          medium {
+            url
+            width
+            height
+            size
+          }
+          large {
+            url
+            width
+            height
+            size
+          }
+          original {
+            url
+            width
+            height
+            size
+          }
+          preview {
+            url
+            width
+            height
+            size
+          }
+          lowRes {
+            url
+            width
+            height
+            size
+          }
+          midRes {
+            url
+            width
+            height
+            size
+          }
+          highRes {
+            url
+            width
+            height
+            size
+          }
+        }
       }
       interaction {
         isLiked

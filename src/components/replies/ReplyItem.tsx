@@ -4,6 +4,7 @@ import UniversalReplyComposer from '../shared/UniversalReplyComposer';
 import { Button } from '../ui/button';
 import { useAuth } from '../../hooks/useAuth';
 import { useDeleteReply } from '../../hooks/useReplies';
+import Avatar from '../core/Avatar';
 import { 
   Heart, 
   MessageCircle, 
@@ -63,10 +64,11 @@ export function ReplyItem({
     <div className={`${className} ${indentationClass}`}>
       <div className="flex gap-3 group">
         {/* Avatar */}
-        <img
-          src={reply.author.avatarUrl || '/default-avatar.png'}
+        <Avatar
+          src={reply.author.avatarUrl}
           alt={reply.author.username}
-          className="w-10 h-10 rounded-full flex-shrink-0"
+          size="md"
+          className="flex-shrink-0"
         />
 
         {/* Reply content */}

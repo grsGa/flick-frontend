@@ -52,11 +52,11 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ user, onClose }) =>
 
   const [updateProfile, { loading }] = useMutation(UPDATE_PROFILE_MUTATION, {
     onCompleted: (data) => {
-      // Update Apollo Client cache to reflect the changes immediately
-      // This ensures the profile page shows updated data without needing to refetch
+      console.log('[EditProfileModal] onCompleted triggered with data:', data);
       
       // Sync with global auth state for sidebar and other components
       if (data?.updateProfile) {
+        console.log('[EditProfileModal] Updating user state with new avatar:', data.updateProfile.avatarUrl);
         updateUser({
           displayName: data.updateProfile.displayName,
           avatarUrl: data.updateProfile.avatarUrl,
@@ -68,64 +68,58 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ user, onClose }) =>
     onError: (err) => {
       setError(err.message);
     },
-    // Refetch the UserByUsername query to ensure UI updates immediately
-    refetchQueries: [
-      {
-        query: gql`
-          query UserByUsername($username: String!) {
-            userByUsername(username: $username) {
-              id
-              username
-              displayName
-              bio
-              location
-              website
-              avatarUrl
-              bannerUrl
-              followersCount
-              followingCount
-              isFollowing
-              isVerified
-              createdAt
-            }
-          }
-        `,
-        variables: { username: user.username },
-      },
-    ],
+    // Use a more aggressive cache reset strategy
+    refetchQueries: 'all',
     // Also update cache directly for immediate UI response
     update: (cache, { data }) => {
+      console.log('[EditProfileModal] Cache update function called with data:', data);
+      
       if (data?.updateProfile) {
-        // Write the updated user data to cache
-        cache.writeQuery({
-          query: gql`
-            query UserByUsername($username: String!) {
-              userByUsername(username: $username) {
-                id
-                username
-                displayName
-                bio
-                location
-                website
-                avatarUrl
-                bannerUrl
-                followersCount
-                followingCount
-                isFollowing
-                isVerified
-                createdAt
+        console.log('[EditProfileModal] Starting cache update for user:', user.username);
+        
+        try {
+          // Write the updated user data to cache
+          cache.writeQuery({
+            query: gql`
+              query UserByUsername($username: String!) {
+                userByUsername(username: $username) {
+                  id
+                  username
+                  displayName
+                  bio
+                  location
+                  website
+                  avatarUrl
+                  bannerUrl
+                  followersCount
+                  followingCount
+                  isFollowing
+                  isVerified
+                  createdAt
+                }
               }
-            }
-          `,
-          variables: { username: user.username },
-          data: {
-            userByUsername: {
-              ...user,
-              ...data.updateProfile,
-              __typename: 'User',
+            `,
+            variables: { username: user.username },
+            data: {
+              userByUsername: {
+                ...user,
+                ...data.updateProfile,
+                __typename: 'User',
+              },
             },
-          },
-        });
+          });
+          console.log('[EditProfileModal] User profile cache updated successfully');
+
+          // Use nuclear option: reset entire cache to force all data to refetch
+          console.log('[EditProfileModal] Resetting entire Apollo cache...');
+          cache.reset();
+          console.log('[EditProfileModal] Cache reset completed');
+          
+          console.log('[EditProfileModal] Cache update completed successfully');
+          
+        } catch (error) {
+          console.error('[EditProfileModal] Cache update failed:', error);
+        }
       }
     },
   });

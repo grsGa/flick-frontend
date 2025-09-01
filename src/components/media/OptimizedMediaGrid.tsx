@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Media, MediaType, MediaVariant, Post } from '@/graphql/types';
 import ImageViewer from './ImageViewer';
+import CustomVideoPlayer from './CustomVideoPlayer';
 
 interface OptimizedMediaGridProps {
   media: Media[];
@@ -205,64 +206,14 @@ const OptimizedMediaGrid: React.FC<OptimizedMediaGridProps> = ({
         </div>
       );
     } else if (item.type === MediaType.VIDEO) {
-      const previewUrl = getVideoPreview(item);
-      const videoUrl = getVideoUrl(item);
-      
       return (
-        <div key={item.id} className={`relative overflow-hidden ${isGrid ? 'h-full' : ''}`}>
-          <video 
-            ref={(el) => {
-              if (el) {
-                videoRefs.current.set(item.id, el);
-              } else {
-                videoRefs.current.delete(item.id);
-              }
-            }}
-            data-video-id={item.id}
-            src={videoUrl}
-            poster={previewUrl} // 使用预览图作为封面，如果没有则为undefined
-            controls
-            preload="metadata" // 只预加载元数据，不预加载视频内容
-            playsInline // 在移动设备上内联播放
-            loop // 循环播放
-            className={`
-              w-full h-full
-              ${isGrid ? 'object-cover' : 'object-contain max-h-96'}
-            `}
-            onError={(e) => {
-              console.error('[OptimizedMediaGrid] Video load error:', {
-                videoUrl,
-                previewUrl,
-                mediaId: item.id,
-                error: e
-              });
-            }}
-            onLoadStart={() => {
-              console.log('[OptimizedMediaGrid] Video load started:', {
-                videoUrl,
-                mediaId: item.id
-              });
-            }}
-            onClick={(e) => {
-              // 点击视频时切换静音状态
-              const video = e.currentTarget;
-              video.muted = !video.muted;
-            }}
+        <div key={item.id} className={`${isGrid ? 'h-full' : 'w-full max-h-96 flex items-center justify-center bg-black rounded-lg overflow-hidden'}`}>
+          <CustomVideoPlayer 
+            media={item}
+            className={isGrid ? 'h-full' : 'w-full h-full'}
+            autoPlay={false}
+            muted={true}
           />
-          
-          {/* 视频标识 */}
-          <div className="absolute top-2 right-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded text-xs">
-            {item.duration ? `${Math.floor(item.duration / 60)}:${String(item.duration % 60).padStart(2, '0')}` : 'VIDEO'}
-          </div>
-          
-          {/* 静音指示器 */}
-          {autoPlayVideos.has(item.id) && (
-            <div className="absolute bottom-2 right-2 bg-black bg-opacity-50 text-white p-1 rounded">
-              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.617.793L4.828 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.828l3.555-3.793A1 1 0 019.383 3.076zM12 6.414l1.293-1.293a1 1 0 011.414 1.414L13.414 8l1.293 1.293a1 1 0 01-1.414 1.414L12 9.414l-1.293 1.293a1 1 0 01-1.414-1.414L10.586 8 9.293 6.707a1 1 0 011.414-1.414L12 6.414z" clipRule="evenodd" />
-              </svg>
-            </div>
-          )}
         </div>
       );
     }

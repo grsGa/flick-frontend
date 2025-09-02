@@ -151,11 +151,57 @@ export function AuthProvider({ children }: AuthProviderProps) {
       localStorage.removeItem("token");
       localStorage.removeItem("user");
     }
-    router.push("/login");
+    router.push("/?modal=login");
   }, [router]);
 
-  // 计算认证状态
-  const isAuthenticated = !!token;
+  // JWT token validation helper
+  const isTokenValid = useCallback((token: string): boolean => {
+    try {
+      // Parse JWT token (simple base64 decode of payload)
+      const parts = token.split('.');
+      if (parts.length !== 3) return false;
+      
+      const payload = JSON.parse(atob(parts[1]));
+      const now = Math.floor(Date.now() / 1000);
+      
+      // Check if token is expired
+      if (payload.exp && payload.exp < now) {
+        console.log('[Auth] Token expired:', { exp: payload.exp, now });
+        return false;
+      }
+      
+      // Check if token has required fields
+      if (!payload.user_id || !payload.username) {
+        console.log('[Auth] Token missing required fields');
+        return false;
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('[Auth] Token validation error:', error);
+      return false;
+    }
+  }, []);
+
+  // 计算认证状态 - now includes token validation
+  const isAuthenticated = useMemo(() => {
+    if (!token) return false;
+    
+    const valid = isTokenValid(token);
+    if (!valid && token) {
+      // Token is invalid, clear it
+      console.log('[Auth] Invalid token detected, clearing auth state');
+      setToken(null);
+      setUser(null);
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+      }
+      return false;
+    }
+    
+    return valid;
+  }, [token, isTokenValid]);
 
   // 提供上下文值
   const contextValue: AuthContextType = useMemo(() => ({

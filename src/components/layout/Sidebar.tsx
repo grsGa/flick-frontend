@@ -93,7 +93,7 @@ const Sidebar: React.FC = () => {
   }, []);
 
   // 获取个人资料页面链接
-  const profileHref = user ? `/profile/${user.username}` : '/login';
+  const profileHref = user ? `/profile/${user.username}` : '/?modal=login';
 
   return (
     <div className="sticky top-0 h-screen flex flex-col p-4">

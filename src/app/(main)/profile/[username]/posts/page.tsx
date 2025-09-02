@@ -17,9 +17,17 @@ async function getPostsPageData(username: string) {
     
     console.log('[ProfilePostsPage] SSR got posts:', data?.userPosts?.edges?.length || 0);
     
+    // Handle case where userPosts is null or undefined
+    if (!data?.userPosts) {
+      return {
+        posts: [],
+        pageInfo: { hasNextPage: false, hasPreviousPage: false, startCursor: null, endCursor: null }
+      };
+    }
+    
     return {
-      posts: data.userPosts.edges.map((edge: any) => edge.node),
-      pageInfo: data.userPosts.pageInfo,
+      posts: data.userPosts.edges?.map((edge: any) => edge.node) || [],
+      pageInfo: data.userPosts.pageInfo || { hasNextPage: false, hasPreviousPage: false, startCursor: null, endCursor: null },
     };
   } catch (error) {
     console.error('[ProfilePostsPage] SSR failed to fetch user posts:', error);

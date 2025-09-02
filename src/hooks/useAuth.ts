@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo, createContext, useContext } from "react";
 import { useRouter } from "next/navigation";
+import { ApolloClient, InMemoryCache, gql } from '@apollo/client';
 
 // 定义用户接口
 interface User {
@@ -36,49 +37,38 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
+  const apolloClient = new ApolloClient({
+    uri: 'http://localhost:8080/graphql',
+    cache: new InMemoryCache()
+  });
 
   // Sync user info from GraphQL when available
   const syncUserInfo = useCallback(async (currentUser: User) => {
-    if (typeof window !== "undefined" && token) {
+    if (typeof window !== "undefined" && token && apolloClient) {
       try {
-        // Fetch latest user info from GraphQL
-        const response = await fetch('http://localhost:8080/graphql', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify({
-            query: `
-              query UserByUsername($username: String!) {
-                userByUsername(username: $username) {
-                  id
-                  username
-                  displayName
-                  avatarUrl
-                }
+        // Fetch latest user info via Apollo Client
+        const { data } = await apolloClient.query({
+          query: gql`
+            query UserByUsername($username: String!) {
+              userByUsername(username: $username) {
+                id
+                username
+                displayName
+                avatarUrl
               }
-            `,
-            variables: { username: currentUser.username }
-          })
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
-          if (data.data?.userByUsername) {
-            const latestUser = data.data.userByUsername;
-            const updatedUser = {
-              ...currentUser,
-              displayName: latestUser.displayName,
-              avatarUrl: latestUser.avatarUrl
-            };
-            
-            // Only update if there are actual changes
-            if (JSON.stringify(updatedUser) !== JSON.stringify(currentUser)) {
-              setUser(updatedUser);
-              localStorage.setItem("user", JSON.stringify(updatedUser));
             }
-          }
+          `,
+          variables: { username: currentUser.username },
+          fetchPolicy: 'network-only' // Always fetch fresh data
+        });
+
+        if (data?.userByUsername) {
+          const updatedUser = {
+            ...currentUser,
+            ...data.userByUsername
+          };
+          setUser(updatedUser);
+          localStorage.setItem("user", JSON.stringify(updatedUser));
         }
       } catch (error) {
         console.error('Failed to sync user info:', error);

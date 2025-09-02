@@ -1,4 +1,4 @@
-import { ApolloClient, NormalizedCacheObject } from '@apollo/client'
+import { ApolloClient, NormalizedCacheObject, gql } from '@apollo/client'
 import { 
   UPLOAD_AVATAR, 
   UPLOAD_BANNER, 
@@ -316,31 +316,77 @@ export class MediaService {
   }
 
   /**
-   * Get media file list for user (kept as REST for now - can be migrated to GraphQL query later)
+   * Get media file list for user via GraphQL query
    */
   static async getUserMedia(userId: string, page = 1, pageSize = 20): Promise<any[]> {
-    // Note: This method is kept as REST API for now since it's a query operation
-    // and doesn't require the same security concerns as upload/delete mutations
-    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    // Validate token before query
+    if (!this.validateToken()) {
+      return [];
+    }
 
     try {
-      const response = await fetch(
-        `http://localhost:8080/api/media/list?userId=${userId}&page=${page}&pageSize=${pageSize}`,
-        {
-          method: 'GET',
-          credentials: 'include',
-          headers: {
-            ...(token && { 'Authorization': `Bearer ${token}` })
-          },
+      const { data } = await this.getClient().query({
+        query: gql`
+          query UserMedia($userId: ID!, $first: Int!, $after: String) {
+            userMedia(userId: $userId, first: $first, after: $after) {
+              edges {
+                node {
+                  ... on Post {
+                    id
+                    media {
+                      id
+                      url
+                      type
+                      mimeType
+                      width
+                      height
+                      variants {
+                        thumbnail {
+                          url
+                          width
+                          height
+                        }
+                        small {
+                          url
+                          width
+                          height
+                        }
+                      }
+                    }
+                    createdAt
+                  }
+                }
+                cursor
+              }
+              pageInfo {
+                hasNextPage
+                endCursor
+              }
+            }
+          }
+        `,
+        variables: {
+          userId,
+          first: pageSize,
+          after: page > 1 ? btoa(`cursor:${(page - 1) * pageSize}`) : null
         }
-      )
+      })
 
-      if (!response.ok) {
-        throw new Error(`Fetch failed: ${response.statusText}`)
-      }
-
-      const result = await response.json()
-      return result.files || []
+      // Extract media from posts and flatten the array
+      const posts = data?.userMedia?.edges?.map((edge: any) => edge.node) || []
+      const mediaFiles: any[] = []
+      
+      posts.forEach((post: any) => {
+        if (post.media && post.media.length > 0) {
+          mediaFiles.push(...post.media.map((media: any) => ({
+            ...media,
+            postId: post.id,
+            createdAt: post.createdAt
+          })))
+        }
+      })
+      
+      return mediaFiles
     } catch (error) {
       console.error('Media list error:', error)
       throw error

@@ -170,7 +170,7 @@ const UniversalReplyComposer: React.FC<UniversalReplyComposerProps> = ({
       if (selectedImages.length > 0) {
         setIsUploadingMedia(true);
         try {
-          mediaUrls = await MediaService.uploadPostMedia(selectedImages);
+          mediaUrls = await MediaService.uploadPostMedia(selectedImages, user?.id || '');
         } catch (error) {
           console.error('Media upload failed:', error);
           toast.error('媒体上传失败，请重试');

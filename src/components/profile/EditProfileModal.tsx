@@ -93,15 +93,15 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ user, onClose }) =>
         variables: { username: user.username }
       }
     ],
-    // Update cache safely without causing re-render issues
+    // Simplified approach: let Apollo refetch data naturally
     update: (cache, { data }) => {
-      console.log('[EditProfileModal] Cache update function called with data:', data);
+      console.log('[EditProfileModal] Mutation response data:', JSON.stringify(data, null, 2));
       
       if (data?.updateProfile) {
-        console.log('[EditProfileModal] Starting safe cache update for user:', user.username);
+        console.log('[EditProfileModal] Profile update successful, new avatarUrl:', data.updateProfile.avatarUrl);
         
+        // Only update the UserByUsername query - let other queries refetch naturally
         try {
-          // Update the specific user query in cache
           cache.updateQuery({
             query: gql`
               query UserByUsername($username: String!) {
@@ -124,21 +124,23 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ user, onClose }) =>
             `,
             variables: { username: user.username }
           }, (existingData) => {
+            console.log('[EditProfileModal] Existing user data:', existingData);
             if (!existingData?.userByUsername) return existingData;
             
-            return {
+            const updated = {
               userByUsername: {
                 ...existingData.userByUsername,
                 ...data.updateProfile,
               }
             };
+            console.log('[EditProfileModal] Updated user data:', updated);
+            return updated;
           });
-          
-          console.log('[EditProfileModal] Cache update completed successfully');
-          
         } catch (error) {
           console.error('[EditProfileModal] Cache update failed:', error);
         }
+      } else {
+        console.error('[EditProfileModal] No updateProfile data in response');
       }
     },
   });
@@ -196,20 +198,40 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ user, onClose }) =>
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    updateProfile({
-      variables: {
-        input: {
-          displayName,
-          bio,
-          location,
-          website,
-          avatarUrl: newAvatarUrl,
-          bannerUrl: newBannerUrl,
-        },
-      },
+    setError('');
+    
+    console.log('[EditProfileModal] Submitting profile update with data:', {
+      displayName: displayName || null,
+      bio: bio || null,
+      location: location || null,
+      website: website || null,
+      avatarURL: newAvatarUrl || null,
+      bannerURL: newBannerUrl || null,
     });
+    
+    try {
+      const result = await updateProfile({
+        variables: {
+          input: {
+            displayName: displayName || null,
+            bio: bio || null,
+            location: location || null,
+            website: website || null,
+            avatarUrl: newAvatarUrl || null,
+            bannerUrl: newBannerUrl || null,
+          },
+        },
+      });
+      
+      console.log('[EditProfileModal] Profile update result:', result);
+      onClose();
+      
+    } catch (err) {
+      setError('Failed to update profile');
+      console.error('Profile update error:', err);
+    }
   };
 
   return (

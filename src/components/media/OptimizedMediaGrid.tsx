@@ -34,33 +34,51 @@ const OptimizedMediaGrid: React.FC<OptimizedMediaGridProps> = ({
 
   // 获取最佳显示URL
   const getBestUrl = useCallback((item: Media, preferHighRes = false): string => {
+    console.log('[OptimizedMediaGrid] getBestUrl called:', {
+      itemId: item.id,
+      hasVariants: !!item.variants,
+      variants: item.variants,
+      preferHighRes,
+      priority,
+      originalUrl: item.url
+    });
+
     if (!item.variants) {
+      console.log('[OptimizedMediaGrid] No variants found, using original URL:', item.url);
       return item.url; // 回退到原始URL
     }
 
     if (preferHighRes) {
       // 点击后显示高分辨率版本
-      return item.variants.large?.url || 
-             item.variants.medium?.url || 
-             item.variants.original?.url || 
-             item.url;
+      const highResUrl = item.variants.large?.url || 
+                        item.variants.medium?.url || 
+                        item.variants.original?.url || 
+                        item.url;
+      console.log('[OptimizedMediaGrid] High res URL selected:', highResUrl);
+      return highResUrl;
     } else {
       // 首页显示优化版本
+      let selectedUrl;
       switch (priority) {
         case 'small':
-          return item.variants.small?.url || 
-                 item.variants.thumbnail?.url || 
-                 item.url;
+          selectedUrl = item.variants.small?.url || 
+                       item.variants.thumbnail?.url || 
+                       item.url;
+          break;
         case 'medium':
-          return item.variants.large?.url || 
-                 item.variants.medium?.url || 
-                 item.variants.small?.url || 
-                 item.url;
+          selectedUrl = item.variants.medium?.url || 
+                       item.variants.small?.url || 
+                       item.variants.thumbnail?.url || 
+                       item.url;
+          break;
         default: // thumbnail
-          return item.variants.thumbnail?.url || 
-                 item.variants.small?.url || 
-                 item.url;
+          selectedUrl = item.variants.thumbnail?.url || 
+                       item.variants.small?.url || 
+                       item.url;
+          break;
       }
+      console.log('[OptimizedMediaGrid] Selected URL for priority', priority, ':', selectedUrl);
+      return selectedUrl;
     }
   }, [priority]);
 

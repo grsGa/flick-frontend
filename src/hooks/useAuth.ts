@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useMemo, createContext, useContext } from "react";
-import { useRouter } from "next/navigation";
-import { ApolloClient, InMemoryCache, gql } from '@apollo/client';
+import { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode, useRef } from "react";
+import apolloClient from "@/lib/apollo-client";
+import { gql } from "@apollo/client";
+import React from "react";
 
 // 定义用户接口
 interface User {
@@ -21,6 +22,7 @@ interface AuthContextType {
   updateUser: (updatedUser: Partial<User>) => void;
   isAuthenticated: boolean;
   isLoading: boolean;
+  validateUserExists: () => Promise<boolean>;
 }
 
 // 创建认证上下文
@@ -36,17 +38,33 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const router = useRouter();
-  const apolloClient = new ApolloClient({
-    uri: 'http://localhost:8080/graphql',
-    cache: new InMemoryCache()
-  });
+  const [isMounted, setIsMounted] = useState(false);
+  
+  // Safe navigation function that works in both SSR and client environments
+  const navigateToLogin = useCallback(() => {
+    if (typeof window !== "undefined") {
+      window.location.href = "/?modal=login";
+    }
+  }, []);
+
+  // 登出方法 - moved up to avoid circular dependency
+  const logout = useCallback(() => {
+    setToken(null);
+    setUser(null);
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+    }
+    
+    // Always use window.location for reliable navigation
+    navigateToLogin();
+  }, [navigateToLogin]);
 
   // Sync user info from GraphQL when available
   const syncUserInfo = useCallback(async (currentUser: User) => {
-    if (typeof window !== "undefined" && token && apolloClient) {
+    if (typeof window !== "undefined" && token) {
       try {
-        // Fetch latest user info via Apollo Client
+        // Use the imported apolloClient instead of creating a new one
         const { data } = await apolloClient.query({
           query: gql`
             query UserByUsername($username: String!) {
@@ -69,15 +87,106 @@ export function AuthProvider({ children }: AuthProviderProps) {
           };
           setUser(updatedUser);
           localStorage.setItem("user", JSON.stringify(updatedUser));
+        } else {
+          // User not found - account may have been deleted
+          console.log('[Auth] User not found during sync, logging out');
+          logout();
         }
       } catch (error) {
         console.error('Failed to sync user info:', error);
+        // Check if error indicates user doesn't exist
+        const errorMessage = error?.message || '';
+        if (errorMessage.includes('user not found') || 
+            errorMessage.includes('User not found') ||
+            errorMessage.includes('does not exist')) {
+          console.log('[Auth] User account no longer exists, logging out');
+          logout();
+        }
       }
     }
-  }, [token]);
+  }, [token, logout, apolloClient]);
 
-  // 从 localStorage 加载初始状态
+  // 防抖和请求状态管理
+  const validationInProgress = useRef(false);
+  const lastValidationTime = useRef(0);
+  const validationDebounceTimeout = useRef<NodeJS.Timeout | null>(null);
+  const VALIDATION_DEBOUNCE_MS = 2000; // 2 seconds debounce
+  const MIN_VALIDATION_INTERVAL = 30000; // 30 seconds minimum interval
+
+  // 验证用户是否仍然存在的函数 - with debouncing and error handling
+  const validateUserExists = useCallback(async (): Promise<boolean> => {
+    if (!user || !token) return false;
+    
+    // Prevent concurrent validations
+    if (validationInProgress.current) {
+      console.log('[Auth] Validation already in progress, skipping');
+      return true;
+    }
+    
+    // Check minimum interval
+    const now = Date.now();
+    if (now - lastValidationTime.current < MIN_VALIDATION_INTERVAL) {
+      console.log('[Auth] Validation too frequent, skipping');
+      return true;
+    }
+
+    validationInProgress.current = true;
+    lastValidationTime.current = now;
+
+    try {
+      const { data } = await apolloClient.query({
+        query: gql`
+          query UserByUsername($username: String!) {
+            userByUsername(username: $username) {
+              id
+              username
+            }
+          }
+        `,
+        variables: { username: user.username },
+        fetchPolicy: 'network-only',
+        errorPolicy: 'all'
+      });
+
+      if (!data?.userByUsername) {
+        console.log('[Auth] User validation failed - user no longer exists');
+        logout();
+        return false;
+      }
+
+      console.log('[Auth] User validation successful');
+      return true;
+    } catch (error) {
+      console.error('[Auth] User validation error:', error);
+      const errorMessage = error?.message || '';
+      
+      // Only logout on specific user-not-found errors
+      if (errorMessage.includes('user not found') || 
+          errorMessage.includes('User not found') ||
+          errorMessage.includes('does not exist')) {
+        console.log('[Auth] User validation failed - user no longer exists');
+        logout();
+        return false;
+      }
+      
+      // For network errors, don't logout but log the issue
+      if (errorMessage.includes('Failed to fetch') || 
+          errorMessage.includes('NetworkError') ||
+          errorMessage.includes('ERR_INSUFFICIENT_RESOURCES')) {
+        console.warn('[Auth] Network error during validation, keeping user logged in:', errorMessage);
+      }
+      
+      return true; // Don't logout on network errors
+    } finally {
+      validationInProgress.current = false;
+    }
+  }, [user, token, logout]);
+
+
+  // Mount detection and initial state loading
   useEffect(() => {
+    setIsMounted(true);
+    
     if (typeof window !== "undefined") {
       try {
         const storedToken = localStorage.getItem("token");
@@ -88,8 +197,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
           const parsedUser = JSON.parse(storedUser);
           if (parsedUser && typeof parsedUser.id === "string" && typeof parsedUser.username === "string") {
             setUser(parsedUser);
-            // Sync user info on app load to ensure latest data
-            setTimeout(() => syncUserInfo(parsedUser), 500);
+            // Sync user info on app load to ensure latest data - debounced
+            if (validationDebounceTimeout.current) {
+              clearTimeout(validationDebounceTimeout.current);
+            }
+            validationDebounceTimeout.current = setTimeout(() => syncUserInfo(parsedUser), 1000);
           } else {
             throw new Error("Invalid user data in localStorage");
           }
@@ -104,6 +216,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
     } else {
       setIsLoading(false);
     }
+    
+    return () => {
+      setIsMounted(false);
+    };
   }, [syncUserInfo]);
 
   // 登录方法
@@ -115,8 +231,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
       localStorage.setItem("user", JSON.stringify(user));
     }
     
-    // Sync user info after login to ensure consistency
-    setTimeout(() => syncUserInfo(user), 1000);
+    // Sync user info after login to ensure consistency - debounced
+    if (validationDebounceTimeout.current) {
+      clearTimeout(validationDebounceTimeout.current);
+    }
+    validationDebounceTimeout.current = setTimeout(() => syncUserInfo(user), 2000);
   }, [syncUserInfo]);
 
   // 更新用户信息方法
@@ -133,16 +252,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
     });
   }, []);
 
-  // 登出方法
-  const logout = useCallback(() => {
-    setToken(null);
-    setUser(null);
-    if (typeof window !== "undefined") {
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
-    }
-    router.push("/?modal=login");
-  }, [router]);
 
   // JWT token validation helper
   const isTokenValid = useCallback((token: string): boolean => {
@@ -193,6 +302,33 @@ export function AuthProvider({ children }: AuthProviderProps) {
     return valid;
   }, [token, isTokenValid]);
 
+  // 定期验证用户状态 - with debouncing and proper cleanup
+  useEffect(() => {
+    if (!isAuthenticated || !user || !isMounted) return;
+
+    // Clear any existing debounce timeout
+    if (validationDebounceTimeout.current) {
+      clearTimeout(validationDebounceTimeout.current);
+    }
+
+    // Debounced immediate validation - only on client side
+    validationDebounceTimeout.current = setTimeout(() => {
+      validateUserExists();
+    }, VALIDATION_DEBOUNCE_MS);
+
+    // 每10分钟验证一次用户是否仍然存在 (increased from 5 minutes)
+    const interval = setInterval(() => {
+      validateUserExists();
+    }, 10 * 60 * 1000); // 10 minutes
+
+    return () => {
+      clearInterval(interval);
+      if (validationDebounceTimeout.current) {
+        clearTimeout(validationDebounceTimeout.current);
+      }
+    };
+  }, [isAuthenticated, user, isMounted]); // Added isMounted to deps
+
   // 提供上下文值
   const contextValue: AuthContextType = useMemo(() => ({
     user,
@@ -201,8 +337,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
     logout,
     updateUser,
     isAuthenticated,
-    isLoading
-  }), [user, token, login, logout, updateUser, isAuthenticated, isLoading]);
+    isLoading,
+    validateUserExists
+  }), [user, token, login, logout, updateUser, isAuthenticated, isLoading, validateUserExists]);
 
   // 使用 React.createElement 替代 JSX 语法
   return React.createElement(

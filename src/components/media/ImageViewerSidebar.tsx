@@ -40,12 +40,26 @@ const ImageViewerSidebar: React.FC<ImageViewerSidebarProps> = ({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { user } = useAuth();
 
-  // Cleanup URLs on unmount
+  // Cleanup URLs on unmount - use ref to avoid dependency issues
+  const imagePreviewUrlsRef = useRef<string[]>([]);
+  
+  // Update ref when URLs change
+  useEffect(() => {
+    imagePreviewUrlsRef.current = imagePreviewUrls;
+  }, [imagePreviewUrls]);
+  
+  // Cleanup on unmount only
   useEffect(() => {
     return () => {
-      imagePreviewUrls.forEach(url => URL.revokeObjectURL(url));
+      imagePreviewUrlsRef.current.forEach(url => {
+        try {
+          URL.revokeObjectURL(url);
+        } catch (e) {
+          // Ignore errors for already revoked URLs
+        }
+      });
     };
-  }, [imagePreviewUrls]);
+  }, []); // Empty dependency array - only run on unmount
 
   // Auto-resize textarea on mount and when expanded
   useEffect(() => {
@@ -371,8 +385,13 @@ const ImageViewerSidebar: React.FC<ImageViewerSidebarProps> = ({
                                 width={300}
                                 height={350}
                                 previewConfig={{
-                                  showPreview: false
+                                  showPreview: true
                                 }}
+                                lazyLoadEmojis={true}
+                                skinTonesDisabled={false}
+                                searchDisabled={false}
+                                emojiStyle="native"
+                                autoFocusSearch={false}
                               />
                             </div>
                           )}

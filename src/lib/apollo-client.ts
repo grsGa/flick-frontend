@@ -9,6 +9,27 @@ import { getMainDefinition } from '@apollo/client/utilities';
 // HTTP link for queries and mutations
 const httpLink = createHttpLink({
   uri: process.env.NEXT_PUBLIC_GRAPHQL_ENDPOINT || 'http://localhost:8080/graphql',
+  fetch: async (uri, options) => {
+    // Reduced logging - only log errors and important requests
+    const isImportantRequest = options?.body?.includes('userByUsername') || options?.body?.includes('login');
+    
+    if (isImportantRequest) {
+      console.log('[Apollo Client] Important request to:', uri);
+    }
+    
+    try {
+      const response = await fetch(uri, options);
+      
+      if (!response.ok && isImportantRequest) {
+        console.log('[Apollo Client] Response error:', response.status, response.statusText);
+      }
+      
+      return response;
+    } catch (error) {
+      console.error('[Apollo Client] Network error:', error.message);
+      throw error;
+    }
+  }
 });
 
 // Create different clients for server and browser
@@ -48,57 +69,50 @@ const createApolloClient = () => {
     }
   });
 
-  // Request interceptor to log all requests
+  // Request interceptor - reduced logging
   const requestLink = setContext((operation, { headers }) => {
-    console.log('[Apollo Client] ===== OUTGOING REQUEST =====');
-    console.log('[Apollo Client] Operation:', operation.operationName);
-    console.log('[Apollo Client] Variables:', JSON.stringify(operation.variables, null, 2));
-    console.log('[Apollo Client] Query:', operation.query.loc?.source.body);
-    console.log('[Apollo Client] Headers:', headers);
-    console.log('[Apollo Client] =====================================');
+    const isImportantOperation = ['UserByUsername', 'Login', 'Upload'].includes(operation.operationName || '');
+    
+    if (isImportantOperation) {
+      console.log('[Apollo Client] Operation:', operation.operationName, 'Variables:', operation.variables);
+    }
+    
     return { headers };
   });
 
-  // Response interceptor to log all responses
-  const responseLink = new ApolloLink((operation, forward) => {
-    return forward(operation).map((response) => {
-      console.log('[Apollo Client] ===== RESPONSE RECEIVED =====');
-      console.log('[Apollo Client] Operation:', operation.operationName);
-      console.log('[Apollo Client] Response data:', response.data);
-      console.log('[Apollo Client] Response errors:', response.errors);
-      console.log('[Apollo Client] =====================================');
-      return response;
-    });
-  });
-
-  // Error link for debugging
-  const errorLink = onError(({ graphQLErrors, networkError, operation, forward, response }) => {
-    console.log('[Apollo Client] ===== ERROR INTERCEPTED =====');
-    console.log('[Apollo Client] Operation:', operation.operationName);
-    console.log('[Apollo Client] Variables:', JSON.stringify(operation.variables, null, 2));
-    console.log('[Apollo Client] Response:', response);
-    console.log('[Apollo Client] =====================================');
-
+  // Error link - focused error logging
+  const errorLink = onError(({ graphQLErrors, networkError, operation }) => {
     if (graphQLErrors) {
-      graphQLErrors.forEach(({ message, locations, path }) =>
-        console.error('[Apollo Client] GraphQL error:', { message, locations, path })
+      graphQLErrors.forEach(({ message }) =>
+        console.error('[Apollo Client] GraphQL error in', operation.operationName, ':', message)
       );
     }
 
     if (networkError) {
-      console.error('[Apollo Client] Network error:', networkError);
-      console.error('[Apollo Client] Network error type:', typeof networkError);
-      console.error('[Apollo Client] Network error keys:', Object.keys(networkError));
-      if ('statusCode' in networkError) {
-        console.error('[Apollo Client] HTTP status:', networkError.statusCode);
-      }
-      if ('result' in networkError) {
-        console.error('[Apollo Client] Error response:', networkError.result);
-      }
-      if ('response' in networkError) {
-        console.error('[Apollo Client] Raw response:', networkError.response);
+      console.error('[Apollo Client] Network error in', operation.operationName, ':', networkError.message);
+      
+      // Log specific network issues that might cause infinite loops
+      if (networkError.message.includes('Failed to fetch') || 
+          networkError.message.includes('ERR_INSUFFICIENT_RESOURCES')) {
+        console.warn('[Apollo Client] Resource exhaustion detected - check for infinite loops');
       }
     }
+  });
+
+  // Response interceptor - minimal logging
+  const responseLink = new ApolloLink((operation, forward) => {
+    return forward(operation).map((response) => {
+      const isImportantOperation = ['UserByUsername', 'Login', 'Upload'].includes(operation.operationName || '');
+      
+      if (isImportantOperation && (response.errors || !response.data)) {
+        console.log('[Apollo Client] Response for', operation.operationName, ':', {
+          hasData: !!response.data,
+          hasErrors: !!response.errors
+        });
+      }
+      
+      return response;
+    });
   });
 
   // WebSocket link for subscriptions
@@ -118,22 +132,18 @@ const createApolloClient = () => {
       );
     },
     wsLink,
-    httpLink,
+    from([responseLink, httpLink]),
   );
 
   return new ApolloClient({
-    link: from([errorLink, responseLink, requestLink, authLink, splitLink]),
+    link: from([errorLink, requestLink, authLink, splitLink]),
     cache: new InMemoryCache({
-      // Add cache debugging
-      resultCaching: false, // Disable result caching temporarily for debugging
       typePolicies: {
         Query: {
           fields: {
             userPosts: {
               keyArgs: ['username'],
               merge(existing, incoming, { args }) {
-                console.log('[Apollo Cache] Merging userPosts:', { existing, incoming, args });
-                console.log('[Apollo Cache] userPosts merge triggered - potential re-render cause');
                 if (!existing) {
                   return incoming;
                 }
@@ -148,9 +158,13 @@ const createApolloClient = () => {
             },
             homeFeed: {
               keyArgs: [],
-              merge(existing, incoming, { args }) {
-                console.log('[Apollo Cache] Merging homeFeed:', { existing, incoming, args });
-                console.log('[Apollo Cache] homeFeed merge triggered - potential re-render cause');
+              merge(existing, incoming) {
+                return incoming;
+              }
+            },
+            userByUsername: {
+              keyArgs: ['username'],
+              merge(existing, incoming) {
                 return incoming;
               }
             }
@@ -160,8 +174,6 @@ const createApolloClient = () => {
           fields: {
             edges: {
               merge(existing = [], incoming = []) {
-                console.log('[Apollo Cache] Merging PostConnection edges:', { existing: existing.length, incoming: incoming.length });
-                console.log('[Apollo Cache] PostConnection merge triggered - potential re-render cause');
                 return incoming;
               }
             }

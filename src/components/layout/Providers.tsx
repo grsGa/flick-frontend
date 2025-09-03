@@ -17,7 +17,6 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <ApolloProvider client={client}>
       <AuthProvider>
-        {/* Temporarily disable React.StrictMode to test if it's causing infinite renders */}
         {children}
       </AuthProvider>
     </ApolloProvider>

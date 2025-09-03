@@ -43,11 +43,19 @@ const PostModal: React.FC<PostModalProps> = ({ isOpen, onClose }) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const maxLength = 280;
 
-  // Cleanup URLs on unmount
+  // Cleanup URLs on unmount - use ref to avoid dependency issues
+  const imagePreviewUrlsRef = useRef<string[]>([]);
+  
+  // Update ref when URLs change
+  useEffect(() => {
+    imagePreviewUrlsRef.current = imagePreviewUrls;
+  }, [imagePreviewUrls]);
+  
+  // Cleanup on unmount only
   useEffect(() => {
     return () => {
       // Clean up all URLs when component unmounts
-      imagePreviewUrls.forEach(url => {
+      imagePreviewUrlsRef.current.forEach(url => {
         try {
           URL.revokeObjectURL(url);
         } catch (e) {
@@ -55,7 +63,7 @@ const PostModal: React.FC<PostModalProps> = ({ isOpen, onClose }) => {
         }
       });
     };
-  }, []); // Only run on unmount
+  }, []); // Empty dependency array - only run on unmount
 
   // Click outside handler for reply permission dropdown
   useEffect(() => {
@@ -639,8 +647,13 @@ const PostModal: React.FC<PostModalProps> = ({ isOpen, onClose }) => {
                     width={350}
                     height={400}
                     previewConfig={{
-                      showPreview: false
+                      showPreview: true
                     }}
+                    lazyLoadEmojis={true}
+                    skinTonesDisabled={false}
+                    searchDisabled={false}
+                    emojiStyle="native"
+                    autoFocusSearch={false}
                   />
                 </div>
               )}

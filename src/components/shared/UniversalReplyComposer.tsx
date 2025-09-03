@@ -50,12 +50,26 @@ const UniversalReplyComposer: React.FC<UniversalReplyComposerProps> = ({
   const { user } = useAuth();
   const [createReply] = useCreateReply();
 
-  // Cleanup URLs on unmount
+  // Cleanup URLs on unmount - use ref to avoid dependency issues
+  const imagePreviewUrlsRef = useRef<string[]>([]);
+  
+  // Update ref when URLs change
+  useEffect(() => {
+    imagePreviewUrlsRef.current = imagePreviewUrls;
+  }, [imagePreviewUrls]);
+  
+  // Cleanup on unmount only
   useEffect(() => {
     return () => {
-      imagePreviewUrls.forEach(url => URL.revokeObjectURL(url));
+      imagePreviewUrlsRef.current.forEach(url => {
+        try {
+          URL.revokeObjectURL(url);
+        } catch (e) {
+          // Ignore errors for already revoked URLs
+        }
+      });
     };
-  }, [imagePreviewUrls]);
+  }, []); // Empty dependency array - only run on unmount
 
   // Auto-resize textarea
   const adjustTextareaHeight = () => {
@@ -468,8 +482,13 @@ const UniversalReplyComposer: React.FC<UniversalReplyComposerProps> = ({
                             width={300}
                             height={350}
                             previewConfig={{
-                              showPreview: false
+                              showPreview: true
                             }}
+                            lazyLoadEmojis={true}
+                            skinTonesDisabled={false}
+                            searchDisabled={false}
+                            emojiStyle="native"
+                            autoFocusSearch={false}
                           />
                         </div>
                       )}

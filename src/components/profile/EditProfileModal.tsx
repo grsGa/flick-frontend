@@ -68,18 +68,41 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ user, onClose }) =>
     onError: (err) => {
       setError(err.message);
     },
-    // Use a more aggressive cache reset strategy
-    refetchQueries: 'all',
-    // Also update cache directly for immediate UI response
+    // Use targeted refetch instead of aggressive cache reset
+    refetchQueries: [
+      {
+        query: gql`
+          query UserByUsername($username: String!) {
+            userByUsername(username: $username) {
+              id
+              username
+              displayName
+              bio
+              location
+              website
+              avatarUrl
+              bannerUrl
+              followersCount
+              followingCount
+              isFollowing
+              isVerified
+              createdAt
+            }
+          }
+        `,
+        variables: { username: user.username }
+      }
+    ],
+    // Update cache safely without causing re-render issues
     update: (cache, { data }) => {
       console.log('[EditProfileModal] Cache update function called with data:', data);
       
       if (data?.updateProfile) {
-        console.log('[EditProfileModal] Starting cache update for user:', user.username);
+        console.log('[EditProfileModal] Starting safe cache update for user:', user.username);
         
         try {
-          // Write the updated user data to cache
-          cache.writeQuery({
+          // Update the specific user query in cache
+          cache.updateQuery({
             query: gql`
               query UserByUsername($username: String!) {
                 userByUsername(username: $username) {
@@ -99,21 +122,17 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ user, onClose }) =>
                 }
               }
             `,
-            variables: { username: user.username },
-            data: {
+            variables: { username: user.username }
+          }, (existingData) => {
+            if (!existingData?.userByUsername) return existingData;
+            
+            return {
               userByUsername: {
-                ...user,
+                ...existingData.userByUsername,
                 ...data.updateProfile,
-                __typename: 'User',
-              },
-            },
+              }
+            };
           });
-          console.log('[EditProfileModal] User profile cache updated successfully');
-
-          // Use nuclear option: reset entire cache to force all data to refetch
-          console.log('[EditProfileModal] Resetting entire Apollo cache...');
-          cache.reset();
-          console.log('[EditProfileModal] Cache reset completed');
           
           console.log('[EditProfileModal] Cache update completed successfully');
           

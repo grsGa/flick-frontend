@@ -76,47 +76,25 @@ export function useCreatePost() {
     initRef.current = true;
   }
   
-  // Stable callbacks that don't change
-  const onCompleted = useMemo(() => async (data: any) => {
-    console.log('[useCreatePost] onCompleted callback triggered with data:', data);
-    
+  // Simplified and optimized cache update callback
+  const onCompleted = useCallback((data: any) => {
     const username = data?.createPost?.author?.username;
-    if (!username) {
-      console.error('[useCreatePost] No username found in response');
-      return;
-    }
+    if (!username) return;
 
-    try {
-      console.log('[useCreatePost] Starting simplified cache update for username:', username);
-      
-      // 修复策略: 分别为不同查询使用正确的variables
-      await Promise.all([
-        // 刷新首页时间线 - 不需要username参数
-        client.refetchQueries({
-          include: [HOME_FEED_QUERY],
-          variables: { first: 10, after: null }
-        }),
-        // 刷新用户帖子列表 - 需要username参数
-        client.refetchQueries({
-          include: [USER_POSTS_QUERY],
-          variables: { username, first: 10, after: null }
-        })
-      ]);
-      
-      console.log('[useCreatePost] Cache refetch completed successfully');
-
-    } catch (error) {
-      console.error('[useCreatePost] Cache update failed:', error);
-      
-      // 简化的备用策略：只清除相关字段
-      client.cache.evict({ fieldName: 'homeFeed' });
-      client.cache.evict({ fieldName: 'userPosts' });
-      client.cache.gc();
-      console.log('[useCreatePost] Cache eviction completed');
-    }
+    // Use setTimeout to prevent blocking the UI and avoid render loops
+    setTimeout(() => {
+      try {
+        // Simple cache eviction instead of complex refetch operations
+        client.cache.evict({ fieldName: 'homeFeed' });
+        client.cache.evict({ fieldName: 'userPosts', args: { username } });
+        client.cache.gc();
+      } catch (error) {
+        console.error('[useCreatePost] Cache update failed:', error);
+      }
+    }, 0);
   }, [client]);
 
-  const onError = useMemo(() => (error: any) => {
+  const onError = useCallback((error: any) => {
     console.error('[useCreatePost] onError callback triggered:', error);
   }, []);
   
@@ -127,23 +105,20 @@ export function useCreatePost() {
   });
   
   // Create a stable createPost function
-  const createPost = useMemo(() => async (options: any) => {
-    console.log('[useCreatePost] createPost called with options:', options);
+  const createPost = useCallback(async (options: any) => {
     try {
-      const result = await createPostMutation(options);
-      console.log('[useCreatePost] createPostMutation returned result:', result);
-      return result;
+      return await createPostMutation(options);
     } catch (error) {
       console.error('[useCreatePost] createPostMutation threw error:', error);
       throw error;
     }
   }, [createPostMutation]);
 
-  return useMemo(() => ({
+  return {
     createPost,
     loading: mutationResult.loading,
     error: mutationResult.error,
-  }), [createPost, mutationResult.loading, mutationResult.error]);
+  };
 }
 
 export function useLikePost() {

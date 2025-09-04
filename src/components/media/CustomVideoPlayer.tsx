@@ -79,16 +79,34 @@ const CustomVideoPlayer: React.FC<CustomVideoPlayerProps> = ({
   
   // 获取视频URL，优先使用中等质量 - 使用useMemo避免不必要的重新计算
   const videoUrl = React.useMemo(() => {
-    if (!media.variants) return media.url;
+    console.log('[CustomVideoPlayer] Selecting video URL:', {
+      mediaId: media.id,
+      hasVariants: !!media.variants,
+      variants: media.variants,
+      videoQuality,
+      originalUrl: media.url
+    });
+
+    if (!media.variants) {
+      console.log('[CustomVideoPlayer] No variants found, using original URL:', media.url);
+      return media.url;
+    }
     
+    let selectedUrl;
     switch (videoQuality) {
       case 'low':
-        return media.variants.lowRes?.url || media.url;
+        selectedUrl = media.variants.lowRes?.url || media.url;
+        break;
       case 'high':
-        return media.variants.highRes?.url || media.variants.midRes?.url || media.variants.lowRes?.url || media.url;
-      default:
-        return media.variants.midRes?.url || media.variants.lowRes?.url || media.url;
+        selectedUrl = media.variants.highRes?.url || media.variants.midRes?.url || media.variants.lowRes?.url || media.url;
+        break;
+      default: // mid
+        selectedUrl = media.variants.midRes?.url || media.variants.lowRes?.url || media.url;
+        break;
     }
+    
+    console.log('[CustomVideoPlayer] Selected video URL for quality', videoQuality, ':', selectedUrl);
+    return selectedUrl;
   }, [media.variants, media.url, videoQuality]);
 
   const posterUrl = media.variants?.preview?.url || media.variants?.thumbnail?.url;

@@ -250,38 +250,59 @@ export class MediaService {
       })
 
       const token = localStorage.getItem('token')
-      const response = await fetch(
-        process.env.NEXT_PUBLIC_GRAPHQL_ENDPOINT || 'http://localhost:8080/graphql',
-        {
-          method: 'POST',
-          headers: {
-            ...(token && { 'Authorization': `Bearer ${token}` })
-          },
-          body: formData
-        }
-      )
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
-      }
-
-      const result = await response.json()
       
-      if (result.errors) {
-        throw new Error(result.errors[0]?.message || 'GraphQL error')
-      }
+      // Create AbortController for timeout handling
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 300000) // 5 minutes timeout for large files
+      
+      console.log('[MediaService] Starting upload for', files.length, 'files, total size:', files.reduce((sum, f) => sum + f.size, 0), 'bytes')
+      
+      try {
+        const response = await fetch(
+          process.env.NEXT_PUBLIC_GRAPHQL_ENDPOINT || 'http://localhost:8080/graphql',
+          {
+            method: 'POST',
+            headers: {
+              ...(token && { 'Authorization': `Bearer ${token}` })
+            },
+            body: formData,
+            signal: controller.signal
+          }
+        )
+        
+        clearTimeout(timeoutId)
 
-      if (!result.data?.uploadPostMedia || result.data.uploadPostMedia.length === 0) {
-        throw new Error('Upload failed - no results returned')
-      }
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+        }
 
-      // Check if any uploads failed
-      const failedUploads = result.data.uploadPostMedia.filter((upload: MediaUploadResult) => !upload.success)
-      if (failedUploads.length > 0) {
-        throw new Error(`Upload failed: ${failedUploads.map((f: MediaUploadResult) => f.message).join(', ')}`)
-      }
+        const result = await response.json()
+        
+        if (result.errors) {
+          throw new Error(result.errors[0]?.message || 'GraphQL error')
+        }
 
-      return result.data.uploadPostMedia.map((upload: MediaUploadResult) => upload.fileUrl)
+        if (!result.data?.uploadPostMedia || result.data.uploadPostMedia.length === 0) {
+          throw new Error('Upload failed - no results returned')
+        }
+
+        // Check if any uploads failed
+        const failedUploads = result.data.uploadPostMedia.filter((upload: MediaUploadResult) => !upload.success)
+        if (failedUploads.length > 0) {
+          throw new Error(`Upload failed: ${failedUploads.map((f: MediaUploadResult) => f.message).join(', ')}`)
+        }
+
+        return result.data.uploadPostMedia.map((upload: MediaUploadResult) => upload.fileUrl)
+      } catch (error) {
+        clearTimeout(timeoutId)
+        
+        if (error.name === 'AbortError') {
+          throw new Error('Upload timeout - file too large or connection too slow')
+        }
+        
+        console.error('Post media upload error:', error)
+        throw error
+      }
     } catch (error) {
       console.error('Post media upload error:', error)
       throw error

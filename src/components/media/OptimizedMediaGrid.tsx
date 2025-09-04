@@ -32,9 +32,15 @@ const OptimizedMediaGrid: React.FC<OptimizedMediaGridProps> = ({
 
   if (media.length === 0) return null;
 
-  // 获取最佳显示URL
+  // 获取最佳显示URL - 仅用于图片
   const getBestUrl = useCallback((item: Media, preferHighRes = false): string => {
-    console.log('[OptimizedMediaGrid] getBestUrl called:', {
+    // 视频不应该调用此函数
+    if (item.type === MediaType.VIDEO) {
+      console.warn('[OptimizedMediaGrid] getBestUrl called for video - this should not happen');
+      return item.url;
+    }
+
+    console.log('[OptimizedMediaGrid] getBestUrl called for image:', {
       itemId: item.id,
       hasVariants: !!item.variants,
       variants: item.variants,

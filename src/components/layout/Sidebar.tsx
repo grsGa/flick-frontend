@@ -170,7 +170,7 @@ const Sidebar: React.FC = () => {
               <ul>
                 <li>
                   <button className="w-full text-left px-4 py-2 hover:bg-gray-100 font-bold">
-                    Settings
+                    Settings and privacy
                   </button>
                 </li>
                 <li>

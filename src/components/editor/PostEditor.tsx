@@ -72,7 +72,7 @@ const PostEditor: React.FC<PostEditorProps> = ({
         console.log('[PostEditor] Video file detected, no compression needed');
       }
 
-      const mediaItem = {
+      const mediaItem: MediaFile = {
         url: URL.createObjectURL(processedFile),
         type: file.type.startsWith('image/') ? 'image' : 'video',
         file: processedFile,

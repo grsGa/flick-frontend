@@ -1,7 +1,7 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { Media, MediaType, MediaVariant, Post } from '@/graphql/types';
 import ImageViewer from './ImageViewer';
-import CustomVideoPlayer from './CustomVideoPlayer';
+import VideoJSPlayer from './VideoJSPlayer';
 
 interface OptimizedMediaGridProps {
   media: Media[];
@@ -11,6 +11,7 @@ interface OptimizedMediaGridProps {
   onLike?: () => void;
   onReply?: () => void;
   onRepost?: () => void;
+  onShare?: () => void;
 }
 
 const OptimizedMediaGrid: React.FC<OptimizedMediaGridProps> = ({ 
@@ -20,7 +21,8 @@ const OptimizedMediaGrid: React.FC<OptimizedMediaGridProps> = ({
   post,
   onLike,
   onReply,
-  onRepost
+  onRepost,
+  onShare
 }) => {
   const [loadedImages, setLoadedImages] = useState<Set<string>>(new Set());
   const [fullSizeImages, setFullSizeImages] = useState<Set<string>>(new Set());
@@ -29,6 +31,7 @@ const OptimizedMediaGrid: React.FC<OptimizedMediaGridProps> = ({
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [autoPlayVideos, setAutoPlayVideos] = useState<Set<string>>(new Set());
   const videoRefs = useRef<Map<string, HTMLVideoElement>>(new Map());
+  const [videoAspectRatios, setVideoAspectRatios] = useState<Map<string, number>>(new Map());
 
   if (media.length === 0) return null;
 
@@ -147,6 +150,40 @@ const OptimizedMediaGrid: React.FC<OptimizedMediaGridProps> = ({
     return 'square'; // 正方形
   }, [imageAspectRatios]);
 
+  // 根据纵横比判断视频类型
+  const getVideoType = useCallback((mediaId: string): 'landscape' | 'portrait' | 'square' => {
+    const aspectRatio = videoAspectRatios.get(mediaId);
+    if (!aspectRatio) return 'landscape'; // 默认横向
+    
+    if (aspectRatio > 1.3) return 'landscape'; // 横向视频
+    if (aspectRatio < 0.75) return 'portrait'; // 纵向视频
+    return 'square'; // 正方形视频
+  }, [videoAspectRatios]);
+
+  // 处理视频元数据加载完成 - 使用 useCallback 缓存函数引用
+  const handleVideoMetadataLoad = useCallback((mediaId: string, video: HTMLVideoElement) => {
+    if (video.videoWidth && video.videoHeight) {
+      const aspectRatio = video.videoWidth / video.videoHeight;
+      
+      // 使用函数式更新避免依赖 videoAspectRatios
+      setVideoAspectRatios(prev => {
+        // 避免重复设置相同的值
+        if (prev.get(mediaId) === aspectRatio) {
+          return prev;
+        }
+        return new Map([...prev, [mediaId, aspectRatio]]);
+      });
+      
+      console.log('[OptimizedMediaGrid] Video metadata loaded:', {
+        mediaId,
+        videoWidth: video.videoWidth,
+        videoHeight: video.videoHeight,
+        aspectRatio,
+        orientation: aspectRatio > 1.3 ? 'landscape' : aspectRatio < 0.75 ? 'portrait' : 'square'
+      });
+    }
+  }, []);
+
   // 视频自动播放逻辑
   const handleVideoIntersection = useCallback((entries: IntersectionObserverEntry[]) => {
     entries.forEach((entry) => {
@@ -194,6 +231,19 @@ const OptimizedMediaGrid: React.FC<OptimizedMediaGridProps> = ({
     };
   }, [handleVideoIntersection]);
 
+  // 为每个视频创建稳定的元数据回调函数
+  const videoMetadataCallbacks = useMemo(() => {
+    const callbacks = new Map<string, (video: HTMLVideoElement) => void>();
+    media.forEach(item => {
+      if (item.type === MediaType.VIDEO) {
+        callbacks.set(item.id, (video: HTMLVideoElement) => {
+          handleVideoMetadataLoad(item.id, video);
+        });
+      }
+    });
+    return callbacks;
+  }, [media, handleVideoMetadataLoad]);
+
   // 渲染单个媒体项
   const renderMediaItem = useCallback((item: Media, index: number, isGrid = false) => {
     const isLoaded = loadedImages.has(item.id);
@@ -230,20 +280,24 @@ const OptimizedMediaGrid: React.FC<OptimizedMediaGridProps> = ({
         </div>
       );
     } else if (item.type === MediaType.VIDEO) {
+      // 获取视频方向
+      const videoType = getVideoType(item.id);
+      
       return (
-        <div key={item.id} className={`${isGrid ? 'h-full' : 'w-full max-h-96 flex items-center justify-center bg-black rounded-lg overflow-hidden'}`}>
-          <CustomVideoPlayer 
+        <div key={item.id} className={`${isGrid ? 'h-full' : videoType === 'portrait' ? 'bg-black rounded-lg overflow-hidden flex items-start justify-start' : 'w-full h-full flex items-center justify-start bg-black rounded-lg overflow-hidden'}`}>
+          <VideoJSPlayer 
             media={item}
-            className={isGrid ? 'h-full' : 'w-full h-full'}
+            className={isGrid ? 'h-full w-full' : videoType === 'portrait' ? 'w-full h-full' : 'w-full h-full'}
             autoPlay={false}
             muted={true}
+            onMetadataLoad={videoMetadataCallbacks.get(item.id)}
           />
         </div>
       );
     }
     
     return null;
-  }, [loadedImages, fullSizeImages, getBestUrl, getVideoPreview, getVideoUrl, handleImageClick, handleImageLoad]);
+  }, [loadedImages, fullSizeImages, getBestUrl, getVideoPreview, getVideoUrl, handleImageClick, handleImageLoad, videoMetadataCallbacks, getVideoType]);
 
   // 图片查看器导航功能
   const imageMedia = media.filter(m => m.type === MediaType.IMAGE);
@@ -278,37 +332,63 @@ const OptimizedMediaGrid: React.FC<OptimizedMediaGridProps> = ({
   // 单个媒体项 - 根据纵横比动态调整布局
   if (media.length === 1) {
     const item = media[0];
-    const imageType = getImageType(item.id);
-    const isLoaded = loadedImages.has(item.id);
+    const isImageLoaded = loadedImages.has(item.id);
+    const hasVideoAspectRatio = videoAspectRatios.has(item.id);
     
-    // 根据图片类型设置不同的容器样式
+    // 获取媒体类型（图片或视频）
+    const mediaType = item.type === MediaType.VIDEO ? 
+      getVideoType(item.id) : 
+      getImageType(item.id);
+    
+    // 判断是否已加载完成（图片加载完成或视频元数据加载完成）
+    const isLoaded = item.type === MediaType.VIDEO ? hasVideoAspectRatio : isImageLoaded;
+    
+    // 根据媒体类型设置不同的容器样式
     const getContainerStyle = () => {
       if (!isLoaded) {
-        // 加载中时使用默认样式
-        return { minHeight: '300px', maxHeight: '500px', maxWidth: '100%' };
+        // 加载中时使用较小的默认高度
+        return { minHeight: '200px', maxHeight: '400px', maxWidth: '100%' };
       }
       
-      switch (imageType) {
+      switch (mediaType) {
         case 'landscape':
-          // 长图：左对齐显示，充分利用宽度
+          // 横向媒体：左对齐显示，充分利用宽度
           return { 
             aspectRatio: '16/9',
             maxHeight: '400px',
             width: '100%'
           };
         case 'portrait':
-          // 竖图：左对齐显示，限制宽度
-          return { 
-            aspectRatio: '9/16',
-            maxHeight: '600px',
-            maxWidth: '400px'
-          };
+          // 纵向媒体：使用实际宽高比，充分利用容器空间
+          const actualAspectRatio = item.type === MediaType.VIDEO ? 
+            videoAspectRatios.get(item.id) : 
+            imageAspectRatios.get(item.id);
+          
+          if (actualAspectRatio) {
+            // 使用实际宽高比，但限制尺寸避免溢出
+            return {
+              aspectRatio: `${actualAspectRatio}/1`,
+              maxWidth: '350px',
+              maxHeight: '600px',
+              width: 'auto',
+              height: 'auto'
+            };
+          } else {
+            // 回退到默认比例
+            return { 
+              aspectRatio: '9/16',
+              maxWidth: '350px',
+              maxHeight: '600px',
+              width: 'auto',
+              height: 'auto'
+            };
+          }
         case 'square':
         default:
-          // 正方形：左对齐显示
+          // 正方形媒体：左对齐显示
           return { 
             aspectRatio: '1/1',
-            maxHeight: '500px',
+            maxHeight: '400px',
             width: '100%'
           };
       }
@@ -321,11 +401,12 @@ const OptimizedMediaGrid: React.FC<OptimizedMediaGridProps> = ({
         return `${baseClasses} w-full`;
       }
       
-      switch (imageType) {
+      switch (mediaType) {
         case 'landscape':
           return `${baseClasses} w-full`;
         case 'portrait':
-          return `${baseClasses}`;
+          // 纵向媒体靠左显示，不占满宽度，但充分利用高度
+          return `${baseClasses} self-start flex-shrink-0`;
         case 'square':
         default:
           return `${baseClasses} w-full`;

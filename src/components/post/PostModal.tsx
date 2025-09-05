@@ -310,18 +310,7 @@ const PostModal: React.FC<PostModalProps> = ({ isOpen, onClose }) => {
 
       const result = await client.mutate({
         mutation: CREATE_POST_MUTATION,
-        variables: { input: inputData },
-        refetchQueries: [
-          {
-            query: HOME_FEED_QUERY,
-            variables: { first: -1 }
-          },
-          {
-            query: USER_POSTS_QUERY,
-            variables: { username: user.username, first: 10 }
-          }
-        ],
-        awaitRefetchQueries: false // Don't wait for refetch to complete
+        variables: { input: inputData }
       });
 
       // Cleanup on success
@@ -652,7 +641,7 @@ const PostModal: React.FC<PostModalProps> = ({ isOpen, onClose }) => {
                     lazyLoadEmojis={true}
                     skinTonesDisabled={false}
                     searchDisabled={false}
-                    emojiStyle="native"
+                    emojiStyle={"native" as any}
                     autoFocusSearch={false}
                   />
                 </div>

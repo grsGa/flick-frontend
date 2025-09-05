@@ -390,7 +390,7 @@ const ImageViewerSidebar: React.FC<ImageViewerSidebarProps> = ({
                                 lazyLoadEmojis={true}
                                 skinTonesDisabled={false}
                                 searchDisabled={false}
-                                emojiStyle="native"
+                                emojiStyle={"native" as any}
                                 autoFocusSearch={false}
                               />
                             </div>

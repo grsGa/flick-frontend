@@ -7,6 +7,7 @@ import { User } from '@/graphql/types';
 import AvatarCrop from '@/components/ui/AvatarCrop';
 import BannerCrop from '@/components/ui/BannerCrop';
 import { MediaService } from '@/services/mediaService';
+import { userUpdateService } from '@/services/userUpdateService';
 import { Camera } from 'lucide-react';
 
 const UPDATE_PROFILE_MUTATION = gql`
@@ -54,94 +55,32 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ user, onClose }) =>
     onCompleted: (data) => {
       console.log('[EditProfileModal] onCompleted triggered with data:', data);
       
-      // Sync with global auth state for sidebar and other components
+      // 使用全局用户更新服务进行统一更新
       if (data?.updateProfile) {
-        console.log('[EditProfileModal] Updating user state with new avatar:', data.updateProfile.avatarUrl);
+        console.log('[EditProfileModal] Triggering global user update:', data.updateProfile);
+        
+        // 更新全局Auth状态
         updateUser({
           displayName: data.updateProfile.displayName,
           avatarUrl: data.updateProfile.avatarUrl,
         });
+        
+        // 触发全局用户数据更新（包括Apollo缓存）- 只传递有值的字段
+        const updateData: any = { username: user.username };
+        if (data.updateProfile.displayName !== undefined) updateData.displayName = data.updateProfile.displayName;
+        if (data.updateProfile.avatarUrl !== undefined) updateData.avatarUrl = data.updateProfile.avatarUrl;
+        if (data.updateProfile.bio !== undefined) updateData.bio = data.updateProfile.bio;
+        if (data.updateProfile.location !== undefined) updateData.location = data.updateProfile.location;
+        if (data.updateProfile.website !== undefined) updateData.website = data.updateProfile.website;
+        if (data.updateProfile.bannerUrl !== undefined) updateData.bannerUrl = data.updateProfile.bannerUrl;
+        
+        userUpdateService.updateUserGlobally(updateData);
       }
       
       onClose();
     },
     onError: (err) => {
       setError(err.message);
-    },
-    // Use targeted refetch instead of aggressive cache reset
-    refetchQueries: [
-      {
-        query: gql`
-          query UserByUsername($username: String!) {
-            userByUsername(username: $username) {
-              id
-              username
-              displayName
-              bio
-              location
-              website
-              avatarUrl
-              bannerUrl
-              followersCount
-              followingCount
-              isFollowing
-              isVerified
-              createdAt
-            }
-          }
-        `,
-        variables: { username: user.username }
-      }
-    ],
-    // Simplified approach: let Apollo refetch data naturally
-    update: (cache, { data }) => {
-      console.log('[EditProfileModal] Mutation response data:', JSON.stringify(data, null, 2));
-      
-      if (data?.updateProfile) {
-        console.log('[EditProfileModal] Profile update successful, new avatarUrl:', data.updateProfile.avatarUrl);
-        
-        // Only update the UserByUsername query - let other queries refetch naturally
-        try {
-          cache.updateQuery({
-            query: gql`
-              query UserByUsername($username: String!) {
-                userByUsername(username: $username) {
-                  id
-                  username
-                  displayName
-                  bio
-                  location
-                  website
-                  avatarUrl
-                  bannerUrl
-                  followersCount
-                  followingCount
-                  isFollowing
-                  isVerified
-                  createdAt
-                }
-              }
-            `,
-            variables: { username: user.username }
-          }, (existingData) => {
-            console.log('[EditProfileModal] Existing user data:', existingData);
-            if (!existingData?.userByUsername) return existingData;
-            
-            const updated = {
-              userByUsername: {
-                ...existingData.userByUsername,
-                ...data.updateProfile,
-              }
-            };
-            console.log('[EditProfileModal] Updated user data:', updated);
-            return updated;
-          });
-        } catch (error) {
-          console.error('[EditProfileModal] Cache update failed:', error);
-        }
-      } else {
-        console.error('[EditProfileModal] No updateProfile data in response');
-      }
     },
   });
 

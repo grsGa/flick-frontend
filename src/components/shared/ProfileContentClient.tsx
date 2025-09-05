@@ -104,7 +104,7 @@ const ProfileContentClient: React.FC<ProfileContentClientProps> = ({
         ? { username, first: 10, after: displayPageInfo.endCursor }
         : { userId, first: 10, after: displayPageInfo.endCursor };
 
-      const { data } = await fetchMore({ variables });
+      const { data } = await fetchMore({ variables } as any);
       
       // Extract data based on content type
       let newData;

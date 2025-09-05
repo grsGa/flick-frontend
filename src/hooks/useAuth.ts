@@ -4,6 +4,7 @@ import { createContext, useContext, useState, useEffect, useCallback, useMemo, R
 import apolloClient from "@/lib/apollo-client";
 import { gql } from "@apollo/client";
 import React from "react";
+import { userUpdateService } from "@/services/userUpdateService";
 
 // 定义用户接口
 interface User {
@@ -183,6 +184,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, [user, token, logout]);
 
 
+  // 初始化用户更新服务
+  useEffect(() => {
+    userUpdateService.initialize(apolloClient);
+  }, []);
+
   // Mount detection and initial state loading
   useEffect(() => {
     setIsMounted(true);
@@ -238,7 +244,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     validationDebounceTimeout.current = setTimeout(() => syncUserInfo(user), 2000);
   }, [syncUserInfo]);
 
-  // 更新用户信息方法
+  // 更新用户信息方法 - 使用全局更新服务
   const updateUser = useCallback((updatedUser: Partial<User>) => {
     setUser(currentUser => {
       if (currentUser) {
@@ -246,6 +252,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
         if (typeof window !== "undefined") {
           localStorage.setItem("user", JSON.stringify(newUser));
         }
+        
+        // 触发全局用户更新（仅在有实际更新时）
+        if (Object.keys(updatedUser).length > 0) {
+          userUpdateService.updateUserGlobally({
+            username: newUser.username,
+            displayName: newUser.displayName,
+            avatarUrl: newUser.avatarUrl,
+          });
+        }
+        
         return newUser;
       }
       return currentUser;

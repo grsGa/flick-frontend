@@ -16,8 +16,14 @@ export default function Bookmarks() {
         displayName: '用户1',
         avatarUrl: '',
         isVerified: true,
+        followersCount: 100,
+        followingCount: 50,
+        createdAt: '2023-01-01T00:00:00Z',
       },
+      isReply: false,
+      replyLevel: 0,
       createdAt: '2023-01-01T00:00:00Z',
+      updatedAt: '2023-01-01T00:00:00Z',
       media: [],
       interaction: {
         isLiked: true,
@@ -26,6 +32,7 @@ export default function Bookmarks() {
         likeCount: 120,
         replyCount: 42,
         repostCount: 15,
+        viewCount: 500,
       },
     },
   ];

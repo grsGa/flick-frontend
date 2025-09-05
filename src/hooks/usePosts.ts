@@ -28,7 +28,7 @@ export {
 
 
 export function useHomeFeed(first: number = 10, after?: string) {
-  const { data, loading, error, fetchMore } = useQuery(HOME_FEED_QUERY, {
+  const { data, loading, error, fetchMore, refetch } = useQuery(HOME_FEED_QUERY, {
     variables: { first, after },
     fetchPolicy: 'cache-and-network', // 总是从网络获取最新数据
     notifyOnNetworkStatusChange: true,
@@ -40,6 +40,7 @@ export function useHomeFeed(first: number = 10, after?: string) {
     loading,
     error,
     fetchMore,
+    refetch,
   };
 }
 
@@ -206,7 +207,7 @@ const USER_REPLIES_QUERY = gql`
 `;
 
 export function useUserReplies(userId: string, first: number = 10) {
-  const { data, loading, error, fetchMore } = useQuery(USER_REPLIES_QUERY, {
+  const { data, loading, error, fetchMore, refetch } = useQuery(USER_REPLIES_QUERY, {
     variables: { userId, first },
     skip: !userId,
   });
@@ -217,6 +218,7 @@ export function useUserReplies(userId: string, first: number = 10) {
     loading,
     error,
     fetchMore,
+    refetch,
   };
 }
 
@@ -295,7 +297,7 @@ const USER_MEDIA_QUERY = gql`
 `;
 
 export function useUserMedia(userId: string, first: number = 10) {
-  const { data, loading, error, fetchMore } = useQuery(USER_MEDIA_QUERY, {
+  const { data, loading, error, fetchMore, refetch } = useQuery(USER_MEDIA_QUERY, {
     variables: { userId, first },
     skip: !userId,
   });
@@ -306,6 +308,7 @@ export function useUserMedia(userId: string, first: number = 10) {
     loading,
     error,
     fetchMore,
+    refetch,
   };
 }
 
@@ -384,7 +387,7 @@ const USER_LIKES_QUERY = gql`
 `;
 
 export function useUserLikes(userId: string, first: number = 10) {
-  const { data, loading, error, fetchMore } = useQuery(USER_LIKES_QUERY, {
+  const { data, loading, error, fetchMore, refetch } = useQuery(USER_LIKES_QUERY, {
     variables: { userId, first },
     skip: !userId,
   });
@@ -395,6 +398,7 @@ export function useUserLikes(userId: string, first: number = 10) {
     loading,
     error,
     fetchMore,
+    refetch,
   };
 }
 

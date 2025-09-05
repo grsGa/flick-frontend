@@ -487,7 +487,7 @@ const UniversalReplyComposer: React.FC<UniversalReplyComposerProps> = ({
                             lazyLoadEmojis={true}
                             skinTonesDisabled={false}
                             searchDisabled={false}
-                            emojiStyle="native"
+                            emojiStyle={"native" as any}
                             autoFocusSearch={false}
                           />
                         </div>

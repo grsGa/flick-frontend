@@ -5,7 +5,7 @@ interface UserNameProps {
   user: Pick<User, 'username' | 'displayName'>;
   verified?: boolean;
   className?: string;
-  onClick?: () => void;
+  onClick?: (e: React.MouseEvent) => void;
 }
 
 const UserName: React.FC<UserNameProps> = ({

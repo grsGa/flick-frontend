@@ -5,7 +5,7 @@ interface AvatarProps {
   alt: string;
   size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
   className?: string;
-  onClick?: () => void;
+  onClick?: (e: React.MouseEvent) => void;
 }
 
 const sizeClasses = {

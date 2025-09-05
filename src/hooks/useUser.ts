@@ -87,50 +87,7 @@ export function useUserByUsername(username: string) {
 }
 
 export function useFollowUser() {
-  const [followUser, { loading, error }] = useMutation(FOLLOW_USER_MUTATION, {
-    update(cache, { data }) {
-      console.log('Follow mutation response:', data);
-      if (data?.followUser) {
-        const { id, username, displayName, avatarUrl, isFollowing, followersCount, followingCount } = data.followUser;
-        console.log('Updating cache for user:', id, 'isFollowing:', isFollowing, 'followersCount:', followersCount);
-        
-        // Update user data in cache using single approach
-        const cacheId = cache.identify({ __typename: 'User', id });
-        console.log('Cache ID:', cacheId);
-        
-        cache.writeFragment({
-          id: cacheId,
-          fragment: gql`
-            fragment UpdatedUser on User {
-              id
-              username
-              displayName
-              avatarUrl
-              isFollowing
-              followersCount
-              followingCount
-            }
-          `,
-          data: {
-            id,
-            username,
-            displayName,
-            avatarUrl,
-            isFollowing,
-            followersCount,
-            followingCount,
-            __typename: 'User'
-          }
-        });
-        
-        console.log('Cache updated with writeFragment');
-      }
-    },
-    refetchQueries: (result) => {
-      console.log('Follow refetchQueries called with result:', result);
-      return ['UserByUsername', 'Followers', 'Following'];
-    },
-  });
+  const [followUser, { loading, error }] = useMutation(FOLLOW_USER_MUTATION);
 
   return {
     followUser,
@@ -140,50 +97,7 @@ export function useFollowUser() {
 }
 
 export function useUnfollowUser() {
-  const [unfollowUser, { loading, error }] = useMutation(UNFOLLOW_USER_MUTATION, {
-    update(cache, { data }) {
-      console.log('Unfollow mutation response:', data);
-      if (data?.unfollowUser) {
-        const { id, username, displayName, avatarUrl, isFollowing, followersCount, followingCount } = data.unfollowUser;
-        console.log('Updating cache for user:', id, 'isFollowing:', isFollowing, 'followersCount:', followersCount);
-        
-        // Update user data in cache using single approach
-        const cacheId = cache.identify({ __typename: 'User', id });
-        console.log('Cache ID:', cacheId);
-        
-        cache.writeFragment({
-          id: cacheId,
-          fragment: gql`
-            fragment UpdatedUser on User {
-              id
-              username
-              displayName
-              avatarUrl
-              isFollowing
-              followersCount
-              followingCount
-            }
-          `,
-          data: {
-            id,
-            username,
-            displayName,
-            avatarUrl,
-            isFollowing,
-            followersCount,
-            followingCount,
-            __typename: 'User'
-          }
-        });
-        
-        console.log('Cache updated with writeFragment');
-      }
-    },
-    refetchQueries: (result) => {
-      console.log('Unfollow refetchQueries called with result:', result);
-      return ['UserByUsername', 'Followers', 'Following'];
-    },
-  });
+  const [unfollowUser, { loading, error }] = useMutation(UNFOLLOW_USER_MUTATION);
 
   return {
     unfollowUser,

@@ -98,9 +98,9 @@ const GET_POST_DETAIL = gql`
 `;
 
 interface PostDetailPageProps {
-  params: {
+  params: Promise<{
     postId: string;
-  };
+  }>;
 }
 
 export default async function PostDetailPage({ params }: PostDetailPageProps) {

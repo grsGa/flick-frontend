@@ -25,10 +25,12 @@ export interface Post {
   rootId?: string;
   isReply: boolean;
   replyLevel: number;
+  parentPost?: Post;
   createdAt: string;
   updatedAt: string;
   media: Media[];
   interaction: Interaction;
+  poll?: Poll;
 }
 
 export interface PostStats {
@@ -149,4 +151,18 @@ export interface Message {
   media?: Media;
   read: boolean;
   createdAt: string;
+}
+
+export interface Poll {
+  id: string;
+  question: string;
+  options: PollOption[];
+  isExpired: boolean;
+  expiresAt: string;
+}
+
+export interface PollOption {
+  id: string;
+  text: string;
+  voteCount: number;
 }

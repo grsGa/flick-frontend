@@ -3,6 +3,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Post } from '@/graphql/types';
 import Avatar from '@/components/core/Avatar';
+import VersionedAvatar from '@/components/avatar/VersionedAvatar';
 import UserName from '@/components/core/UserName';
 import TimeAgo from '@/components/core/TimeAgo';
 import OptimizedMediaGrid from '@/components/media/OptimizedMediaGrid';
@@ -48,7 +49,8 @@ const PostCard: React.FC<PostCardProps> = ({
       <div className="flex">
         {/* User avatar */}
         <div className="flex-shrink-0 mr-3">
-          <Avatar
+          <VersionedAvatar
+            userId={post.author.id}
             src={post.author.avatarUrl}
             alt={post.author.displayName || post.author.username}
             size="md"

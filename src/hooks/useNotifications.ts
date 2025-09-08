@@ -71,7 +71,17 @@ export function useNotifications(first: number = 10, after?: string) {
 
 export function useMarkNotificationAsRead() {
   const [markNotificationAsRead, { loading, error }] = useMutation(MARK_NOTIFICATION_AS_READ, {
-    refetchQueries: ['Notifications'],
+    update(cache, { data }, { variables }) {
+      if (data?.markNotificationAsRead && variables?.id) {
+        // Update the notification in cache directly
+        cache.modify({
+          id: `Notification:${variables.id}`,
+          fields: {
+            isRead: () => true
+          }
+        });
+      }
+    }
   });
 
   return {
@@ -83,7 +93,25 @@ export function useMarkNotificationAsRead() {
 
 export function useMarkAllNotificationsAsRead() {
   const [markAllNotificationsAsRead, { loading, error }] = useMutation(MARK_ALL_NOTIFICATIONS_AS_READ, {
-    refetchQueries: ['Notifications'],
+    update(cache) {
+      // Mark all notifications as read in cache
+      cache.modify({
+        fields: {
+          notifications(existingNotifications = { edges: [] }) {
+            return {
+              ...existingNotifications,
+              edges: existingNotifications.edges.map((edge: any) => ({
+                ...edge,
+                node: {
+                  ...edge.node,
+                  isRead: true
+                }
+              }))
+            };
+          }
+        }
+      });
+    }
   });
 
   return {

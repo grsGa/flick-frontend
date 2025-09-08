@@ -466,6 +466,7 @@ export const CREATE_POST_MUTATION = gql`
         likeCount
         replyCount
         repostCount
+        viewCount
       }
       tags
       mentionedUsers
@@ -479,6 +480,94 @@ export const LIKE_POST_MUTATION = gql`
     likePost(input: $input) {
       isLiked
       likeCount
+    }
+  }
+`;
+
+// Subscription queries for real-time updates
+export const POST_CREATED_SUBSCRIPTION = gql`
+  subscription PostCreated {
+    postCreated {
+      post {
+        id
+        content
+        createdAt
+        updatedAt
+        visibility
+        replyPermission
+        author {
+          id
+          username
+          displayName
+          avatarUrl
+          isVerified
+        }
+        media {
+          id
+          url
+          type
+          variants {
+            thumbnail
+            small
+            medium
+            large
+          }
+        }
+        metrics {
+          replyCount
+          repostCount
+          likeCount
+          bookmarkCount
+        }
+        interactions {
+          isLiked
+          isReposted
+          isBookmarked
+          likeCount
+          replyCount
+          repostCount
+          viewCount
+        }
+        parentId
+        rootId
+        mentionedUsers {
+          id
+          username
+          displayName
+        }
+        tags
+        pollData {
+          id
+          options {
+            id
+            text
+            voteCount
+          }
+          totalVotes
+          expiresAt
+          allowMultipleChoices
+        }
+      }
+      eventType
+      createdAt
+    }
+  }
+`;
+
+export const MEDIA_PROCESSED_SUBSCRIPTION = gql`
+  subscription MediaProcessed($postId: ID!) {
+    mediaProcessed(postId: $postId) {
+      postId
+      mediaId
+      status
+      variants {
+        thumbnail
+        small
+        medium
+        large
+      }
+      eventType
+      processedAt
     }
   }
 `;

@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useApolloClient } from '@apollo/client';
 import { useCallback, useRef, useEffect, useMemo } from 'react';
 import { gql } from '@apollo/client';
+import { useAuth } from './useAuth';
 
 // Import GraphQL queries from shared file
 import { 
@@ -69,51 +70,152 @@ let hookInstance: any = null;
 
 export function useCreatePost() {
   const client = useApolloClient();
+  const { user } = useAuth();
   
-  // Only log initialization once per component lifecycle
-  const initRef = useRef(false);
-  if (!initRef.current) {
-    console.log('[useCreatePost] Hook initialized');
-    initRef.current = true;
-  }
-  
-  // Simplified and optimized cache update callback
-  const onCompleted = useCallback((data: any) => {
-    const username = data?.createPost?.author?.username;
-    if (!username) return;
-
-    // Use setTimeout to prevent blocking the UI and avoid render loops
-    setTimeout(() => {
-      try {
-        // Simple cache eviction instead of complex refetch operations
-        client.cache.evict({ fieldName: 'homeFeed' });
-        client.cache.evict({ fieldName: 'userPosts', args: { username } });
-        client.cache.gc();
-      } catch (error) {
-        console.error('[useCreatePost] Cache update failed:', error);
-      }
-    }, 0);
-  }, [client]);
-
-  const onError = useCallback((error: any) => {
-    console.error('[useCreatePost] onError callback triggered:', error);
-  }, []);
-  
-  // Use useMutation with stable callbacks
+  // Optimistic UI and smart cache update
   const [createPostMutation, mutationResult] = useMutation(CREATE_POST_MUTATION, {
-    onCompleted,
-    onError
+    update: (cache, { data }) => {
+      if (!data?.createPost) return;
+      
+      const newPost = data.createPost;
+      // Updating cache with new post
+      
+      try {
+        // Update Home Feed
+        const homeFeedData = cache.readQuery({
+          query: HOME_FEED_QUERY,
+          variables: { first: 10 }
+        });
+        
+        if (homeFeedData?.homeFeed) {
+          cache.writeQuery({
+            query: HOME_FEED_QUERY,
+            variables: { first: 10 },
+            data: {
+              homeFeed: {
+                ...homeFeedData.homeFeed,
+                edges: [
+                  {
+                    __typename: 'PostEdge',
+                    node: newPost,
+                    cursor: newPost.id
+                  },
+                  ...homeFeedData.homeFeed.edges
+                ]
+              }
+            }
+          });
+        }
+        
+        // Update User Posts
+        const username = newPost.author?.username;
+        if (username) {
+          const userPostsData = cache.readQuery({
+            query: USER_POSTS_QUERY,
+            variables: { username, first: 10 }
+          });
+          
+          if (userPostsData?.userPosts) {
+            cache.writeQuery({
+              query: USER_POSTS_QUERY,
+              variables: { username, first: 10 },
+              data: {
+                userPosts: {
+                  ...userPostsData.userPosts,
+                  edges: [
+                    {
+                      __typename: 'PostEdge',
+                      node: newPost,
+                      cursor: newPost.id
+                    },
+                    ...userPostsData.userPosts.edges
+                  ]
+                }
+              }
+            });
+          }
+        }
+        
+        // Cache updated successfully
+      } catch (error) {
+        // Cache update failed, optimistic response will handle display
+        // No need for cache eviction as it disrupts user experience
+      }
+    },
+    
+    onError: (error) => {
+      console.error('[useCreatePost] Mutation error:', error);
+    }
   });
   
-  // Create a stable createPost function
-  const createPost = useCallback(async (options: any) => {
-    try {
-      return await createPostMutation(options);
-    } catch (error) {
-      console.error('[useCreatePost] createPostMutation threw error:', error);
-      throw error;
-    }
-  }, [createPostMutation]);
+  // Create post with optimistic response
+  const createPost = useCallback(async (variables: any) => {
+    const tempId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    
+    return createPostMutation({
+      variables,
+      optimisticResponse: {
+        createPost: {
+          __typename: 'Post',
+          id: tempId,
+          content: variables.input.content,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          visibility: variables.input.visibility || 'PUBLIC',
+          replyPermission: variables.input.replyPermission || 'EVERYONE',
+          parentId: variables.input.parentId || null,
+          rootId: null,
+          repostId: null,
+          isReply: false,
+          replyLevel: 0,
+          hasMedia: !!(variables.input.mediaUrls?.length),
+          hasPoll: false,
+          author: {
+            __typename: 'User',
+            id: user?.id || 'temp-user-id',
+            username: user?.username || 'temp-user',
+            displayName: user?.displayName || user?.username || 'User',
+            avatarUrl: user?.avatarUrl || null,
+            isVerified: user?.isVerified || false
+          },
+          media: variables.input.mediaUrls?.map((url: string, index: number) => ({
+            __typename: 'Media',
+            id: `temp-media-${index}`,
+            url,
+            type: 'IMAGE', // Default assumption
+            mimeType: 'image/jpeg',
+            width: 0,
+            height: 0,
+            variants: null
+          })) || [],
+          mediaAttachments: [],
+          mentionedUsers: [],
+          tags: [],
+          poll: null,
+          stats: {
+            __typename: 'PostStats',
+            likeCount: 0,
+            replyCount: 0,
+            repostCount: 0,
+            viewCount: 0
+          },
+          interaction: {
+            __typename: 'Interaction',
+            isLiked: false,
+            isBookmarked: false,
+            isReposted: false,
+            likeCount: 0,
+            replyCount: 0,
+            repostCount: 0,
+            viewCount: 0
+          },
+          replies: null,
+          parentPost: null,
+          replyMention: null
+        }
+      }
+    });
+  }, [createPostMutation, user]);
 
   return {
     createPost,

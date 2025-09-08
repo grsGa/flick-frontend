@@ -181,27 +181,17 @@ export function useCreateReply() {
                   }
                 }
               });
-              console.log('Cache updated successfully for root post:', rootPostId);
+              // Cache updated successfully for root post
             } else {
-              console.log('No existing cache data found for root post:', rootPostId);
+              // No existing cache data found for root post
             }
           } catch (error) {
-            console.log('Cache update failed:', error);
-            // 备用策略：强制重新获取数据
-            cache.evict({ fieldName: 'postReplies' });
+            // Cache update failed, optimistic response will handle display
           }
         }
       }
     },
-    refetchQueries: (result) => {
-      const rootPostId = result.data?.createReply?.rootId || result.data?.createReply?.parentId;
-      return rootPostId ? [
-        {
-          query: GET_POST_REPLIES,
-          variables: { postId: rootPostId, first: 20 }
-        }
-      ] : [];
-    },
+    // Removed refetchQueries - using cache.modify for better performance
     errorPolicy: 'all',
   });
 }
@@ -211,9 +201,23 @@ export function useDeleteReply() {
   return useMutation(DELETE_REPLY, {
     update(cache, { data }, { variables }) {
       if (data?.deleteReply && variables?.replyId) {
-        // Remove the reply from all relevant cache entries
-        cache.evict({ id: `Post:${variables.replyId}` });
-        cache.gc();
+        // Use cache.modify for precise removal instead of eviction
+        try {
+          cache.modify({
+            fields: {
+              postReplies(existingReplies = { edges: [] }, { readField }) {
+                return {
+                  ...existingReplies,
+                  edges: existingReplies.edges.filter(
+                    (edge: any) => readField('id', edge.node) !== variables.replyId
+                  )
+                };
+              }
+            }
+          });
+        } catch (error) {
+          // Cache modification failed for reply deletion
+        }
       }
     },
     errorPolicy: 'all',

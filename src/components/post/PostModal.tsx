@@ -5,8 +5,7 @@ import { createPortal } from 'react-dom';
 import Avatar from '@/components/core/Avatar';
 import EmojiPicker, { EmojiClickData } from 'emoji-picker-react';
 import { useAuth } from '@/hooks/useAuth';
-import { useApolloClient } from '@apollo/client';
-import { CREATE_POST_MUTATION, HOME_FEED_QUERY, USER_POSTS_QUERY } from '@/hooks/usePosts';
+import { useCreatePost } from '@/hooks/usePosts';
 import { MediaService } from '@/services/mediaService';
 import GifPicker from './GifPicker';
 
@@ -17,7 +16,7 @@ interface PostModalProps {
 
 const PostModal: React.FC<PostModalProps> = ({ isOpen, onClose }) => {
   const { user } = useAuth();
-  const client = useApolloClient();
+  const { createPost, loading: createPostLoading, error: createPostError } = useCreatePost();
   
   const [content, setContent] = useState('');
   const [selectedGif, setSelectedGif] = useState<string | null>(null);
@@ -278,8 +277,8 @@ const PostModal: React.FC<PostModalProps> = ({ isOpen, onClose }) => {
     try {
       const inputData: any = {
         content: content.trim(),
-        // visibility: 'public', // Omit to use backend default
-        // replyPermission: 'EVERYONE', // Omit to use backend default
+        visibility: 'PUBLIC',
+        replyPermission: replyPermission,
       };
 
       if (selectedImages.length > 0) {
@@ -287,6 +286,7 @@ const PostModal: React.FC<PostModalProps> = ({ isOpen, onClose }) => {
         try {
           const mediaUrls = await MediaService.uploadPostMedia(selectedImages, user.id);
           inputData.mediaUrls = mediaUrls;
+          console.log('[PostModal] Media uploaded successfully:', mediaUrls);
         } catch (uploadError: any) {
           let errorMessage = 'Unknown error';
           if (uploadError.response?.data?.error) {
@@ -308,10 +308,14 @@ const PostModal: React.FC<PostModalProps> = ({ isOpen, onClose }) => {
         setIsUploadingMedia(false);
       }
 
-      const result = await client.mutate({
-        mutation: CREATE_POST_MUTATION,
-        variables: { input: inputData }
+      console.log('[PostModal] Creating post with data:', inputData);
+      
+      // Use the new optimistic createPost hook
+      const result = await createPost({
+        input: inputData
       });
+
+      console.log('[PostModal] Post created successfully:', result.data?.createPost?.id);
 
       // Cleanup on success
       setContent('');

@@ -1,51 +1,36 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Post } from '../../graphql/types';
-import { usePostReplies } from '../../hooks/useReplies';
-import { ReplyItem } from './ReplyItem';
+import { usePostReplies } from '../../hooks/usePostReplies';
+import ReplyItem from './ReplyItem';
 import UniversalReplyComposer from '../shared/UniversalReplyComposer';
 import { Button } from '../ui/button';
 import { Loader2, MessageCircle, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface ReplyListProps {
   postId: string;
-  maxNestingLevel?: number;
   showReplyInput?: boolean;
   className?: string;
 }
 
 export function ReplyList({ 
   postId, 
-  maxNestingLevel = 3, 
   showReplyInput = true,
   className = "" 
 }: ReplyListProps) {
-  const [showReplies, setShowReplies] = useState(true);
   const [activeReplyId, setActiveReplyId] = useState<string | null>(null);
-  const { data, loading, error, fetchMore } = usePostReplies(postId);
+  const { 
+    replies, 
+    loading, 
+    error, 
+    hasNextPage, 
+    fetchMore, 
+    createReply,
+    topLevelReplies, 
+    nestedRepliesMap 
+  } = usePostReplies({ postId });
   
-  const replies = data?.postReplies?.edges?.map(edge => edge.node) || [];
-  const hasMore = data?.postReplies?.pageInfo?.hasNextPage || false;
-  const endCursor = data?.postReplies?.pageInfo?.endCursor;
-
   const handleLoadMore = () => {
-    if (hasMore && endCursor) {
-      fetchMore({
-        variables: { after: endCursor },
-        updateQuery: (prev, { fetchMoreResult }) => {
-          if (!fetchMoreResult) return prev;
-          
-          return {
-            postReplies: {
-              ...fetchMoreResult.postReplies,
-              edges: [
-                ...prev.postReplies.edges,
-                ...fetchMoreResult.postReplies.edges
-              ]
-            }
-          };
-        }
-      });
-    }
+    fetchMore();
   };
 
   const handleReplyCreated = () => {
@@ -57,29 +42,7 @@ export function ReplyList({
     setActiveReplyId(activeReplyId === replyId ? null : replyId);
   };
 
-  // Group replies by level for better rendering
-  const topLevelReplies = replies.filter(reply => reply.replyLevel === 1);
-  const nestedReplies = replies.filter(reply => reply.replyLevel > 1);
-
-  // Create a map of parent reply ID to nested replies
-  // Now that backend correctly sets parentId for level 2 replies, we can use it directly
-  const nestedRepliesMap = nestedReplies.reduce((acc, reply) => {
-    if (reply.parentId) {
-      // Use parentId to associate nested replies with their direct parent
-      if (!acc[reply.parentId]) {
-        acc[reply.parentId] = [];
-      }
-      acc[reply.parentId].push(reply);
-    }
-    return acc;
-  }, {} as Record<string, Post[]>);
-
-  // Sort nested replies by creation time (oldest first - 从上到下按时间排序)
-  Object.keys(nestedRepliesMap).forEach(parentId => {
-    nestedRepliesMap[parentId].sort((a, b) => 
-      new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-    );
-  });
+  // Replies are already grouped by the hook
 
   if (error) {
     return (
@@ -104,8 +67,7 @@ export function ReplyList({
       )}
 
       {/* Replies list */}
-      {showReplies && (
-        <div className="space-y-3">
+      <div className="space-y-3">
           {loading && replies.length === 0 ? (
             <div className="flex justify-center py-8">
               <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
@@ -117,7 +79,7 @@ export function ReplyList({
                   key={reply.id}
                   reply={reply}
                   nestedReplies={nestedRepliesMap[reply.id] || []}
-                  maxNestingLevel={maxNestingLevel}
+                  maxNestingLevel={3}
                   currentLevel={1}
                   activeReplyId={activeReplyId}
                   onToggleReply={handleToggleReply}
@@ -125,7 +87,7 @@ export function ReplyList({
                 />
               ))}
               
-              {hasMore && (
+              {hasNextPage && (
                 <div className="flex justify-center pt-4">
                   <Button
                     variant="outline"
@@ -150,8 +112,7 @@ export function ReplyList({
               <p className="text-sm">Be the first to reply!</p>
             </div>
           )}
-        </div>
-      )}
+      </div>
     </div>
   );
 }

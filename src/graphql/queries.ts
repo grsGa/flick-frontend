@@ -571,3 +571,147 @@ export const MEDIA_PROCESSED_SUBSCRIPTION = gql`
     }
   }
 `;
+
+// Reply-related queries using unified Post model
+export const GET_POST_REPLIES = gql`
+  query GetPostReplies($postId: ID!, $first: Int!, $after: String) {
+    postReplies(postId: $postId, first: $first, after: $after) {
+      edges {
+        node {
+          id
+          content
+          createdAt
+          updatedAt
+          parentId
+          rootId
+          isReply
+          replyLevel
+          author {
+            id
+            username
+            displayName
+            avatarUrl
+            isVerified
+          }
+          parentPost {
+            id
+            author {
+              id
+              username
+              displayName
+            }
+          }
+          media {
+            id
+            url
+            type
+            mimeType
+            width
+            height
+            variants {
+              thumbnail {
+                url
+                width
+                height
+                size
+              }
+              small {
+                url
+                width
+                height
+                size
+              }
+              medium {
+                url
+                width
+                height
+                size
+              }
+            }
+          }
+          interaction {
+            isLiked
+            isBookmarked
+            isReposted
+            likeCount
+            replyCount
+            repostCount
+            viewCount
+          }
+        }
+        cursor
+      }
+      pageInfo {
+        hasNextPage
+        endCursor
+      }
+    }
+  }
+`;
+
+export const CREATE_REPLY_MUTATION = gql`
+  mutation CreateReply($input: CreateReplyInput!) {
+    createReply(input: $input) {
+      id
+      content
+      createdAt
+      updatedAt
+      parentId
+      rootId
+      isReply
+      replyLevel
+      author {
+        id
+        username
+        displayName
+        avatarUrl
+        isVerified
+      }
+      parentPost {
+        id
+        author {
+          id
+          username
+          displayName
+        }
+      }
+      media {
+        id
+        url
+        type
+        mimeType
+        width
+        height
+        variants {
+          thumbnail {
+            url
+            width
+            height
+            size
+          }
+          small {
+            url
+            width
+            height
+            size
+          }
+        }
+      }
+      interaction {
+        isLiked
+        isBookmarked
+        isReposted
+        likeCount
+        replyCount
+        repostCount
+        viewCount
+      }
+    }
+  }
+`;
+
+export const DELETE_REPLY_MUTATION = gql`
+  mutation DeleteReply($replyId: ID!) {
+    deleteReply(replyId: $replyId)
+  }
+`;

@@ -40,13 +40,8 @@ export interface PostStats {
   viewCount: number;
 }
 
-export interface Reply {
-  id: string;
-  content: string;
-  author: User;
-  createdAt: string;
-  interaction: Interaction;
-}
+// Reply type removed - using unified Post model for replies
+// Replies are Posts with isReply=true and parentId set
 
 // 媒体版本信息
 export interface MediaVariant {

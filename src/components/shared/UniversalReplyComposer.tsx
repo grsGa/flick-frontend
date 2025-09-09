@@ -163,6 +163,8 @@ const UniversalReplyComposer: React.FC<UniversalReplyComposerProps> = ({
   const handleSubmit = async () => {
     if (!user || (!replyText.trim() && selectedImages.length === 0 && !selectedGif)) return;
 
+    // Skip validation - UI prevents submission when over limit
+
     setIsSubmitting(true);
     try {
       let mediaUrls: string[] = [];
@@ -245,15 +247,20 @@ const UniversalReplyComposer: React.FC<UniversalReplyComposerProps> = ({
           />
           <div className="flex items-center justify-between">
             <span className={`text-sm ${
-              replyText.length > maxLength * 0.9 ? 'text-red-400' : 'text-gray-400'
+              new TextEncoder().encode(replyText).length > maxLength ? 'text-red-500' : 
+              new TextEncoder().encode(replyText).length > maxLength * 0.9 ? 'text-orange-500' : 'text-gray-400'
             }`}>
-              {replyText.length}/{maxLength}
+              {new TextEncoder().encode(replyText).length}/{maxLength}
             </span>
             <Button
               onClick={handleSubmit}
-              disabled={!replyText.trim() || isSubmitting}
+              disabled={!replyText.trim() || isSubmitting || new TextEncoder().encode(replyText).length > maxLength}
               size="sm"
-              className="bg-blue-600 hover:bg-blue-700 text-white"
+              className={`${
+                new TextEncoder().encode(replyText).length > maxLength || !replyText.trim() || isSubmitting
+                  ? 'bg-gray-400 cursor-not-allowed' 
+                  : 'bg-blue-600 hover:bg-blue-700'
+              } text-white`}
             >
               {isSubmitting ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -313,14 +320,19 @@ const UniversalReplyComposer: React.FC<UniversalReplyComposerProps> = ({
             </div>
             <div className="flex items-center space-x-3">
               <span className={`text-sm ${
-                replyText.length > maxLength * 0.9 ? 'text-red-400' : 'text-gray-400'
+                new TextEncoder().encode(replyText).length > maxLength ? 'text-red-500' : 
+                new TextEncoder().encode(replyText).length > maxLength * 0.9 ? 'text-orange-500' : 'text-gray-400'
               }`}>
-                {replyText.length}/{maxLength}
+                {new TextEncoder().encode(replyText).length}/{maxLength}
               </span>
               <Button
                 onClick={handleSubmit}
-                disabled={!replyText.trim() || isSubmitting}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-6"
+                disabled={!replyText.trim() || isSubmitting || new TextEncoder().encode(replyText).length > maxLength}
+                className={`px-6 ${
+                  new TextEncoder().encode(replyText).length > maxLength || !replyText.trim() || isSubmitting
+                    ? 'bg-gray-400 cursor-not-allowed' 
+                    : 'bg-blue-600 hover:bg-blue-700'
+                } text-white`}
               >
                 {isSubmitting ? (
                   <div className="flex items-center space-x-2">
@@ -377,8 +389,11 @@ const UniversalReplyComposer: React.FC<UniversalReplyComposerProps> = ({
               />
               
               {isExpanded && (
-                <div className="absolute bottom-3 right-3 text-xs text-gray-400">
-                  {replyText.length}/{maxLength}
+                <div className={`absolute bottom-3 right-3 text-xs ${
+                  new TextEncoder().encode(replyText).length > maxLength ? 'text-red-500' : 
+                  new TextEncoder().encode(replyText).length > maxLength * 0.9 ? 'text-orange-500' : 'text-gray-400'
+                }`}>
+                  {new TextEncoder().encode(replyText).length}/{maxLength}
                 </div>
               )}
             </div>
@@ -550,9 +565,9 @@ const UniversalReplyComposer: React.FC<UniversalReplyComposerProps> = ({
 
                 <Button
                   onClick={handleSubmit}
-                  disabled={(!replyText.trim() && selectedImages.length === 0 && !selectedGif) || isSubmitting || isUploadingMedia}
+                  disabled={(!replyText.trim() && selectedImages.length === 0 && !selectedGif) || isSubmitting || isUploadingMedia || new TextEncoder().encode(replyText).length > maxLength}
                   className={`px-6 py-2 rounded-full font-medium transition-colors ${
-                    (!replyText.trim() && selectedImages.length === 0 && !selectedGif) || isSubmitting || isUploadingMedia
+                    (!replyText.trim() && selectedImages.length === 0 && !selectedGif) || isSubmitting || isUploadingMedia || new TextEncoder().encode(replyText).length > maxLength
                       ? 'bg-gray-400 text-white cursor-not-allowed'
                       : 'bg-black hover:bg-gray-800 text-white'
                   }`}

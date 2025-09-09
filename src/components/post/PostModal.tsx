@@ -395,7 +395,10 @@ const PostModal: React.FC<PostModalProps> = ({ isOpen, onClose }) => {
               
               {/* Character Count */}
               <div className="flex justify-end mt-2">
-                <span className={`text-sm ${new TextEncoder().encode(content).length > maxLength * 0.8 ? 'text-red-500' : 'text-gray-500'}`}>
+                <span className={`text-sm ${
+                  new TextEncoder().encode(content).length > maxLength ? 'text-red-500' : 
+                  new TextEncoder().encode(content).length > maxLength * 0.9 ? 'text-orange-500' : 'text-gray-500'
+                }`}>
                   {new TextEncoder().encode(content).length}/{maxLength}
                 </span>
               </div>

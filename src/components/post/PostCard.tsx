@@ -73,7 +73,7 @@ const PostCard: React.FC<PostCardProps> = ({
 
           {/* Post text */}
           <div className="mt-1 mb-2">
-            <p className="text-gray-900">{post.content}</p>
+            <p className="text-gray-900 whitespace-pre-wrap">{post.content}</p>
           </div>
 
           {/* Media */}

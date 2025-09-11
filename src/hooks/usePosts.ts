@@ -85,7 +85,7 @@ export function useCreatePost() {
         const homeFeedData = cache.readQuery({
           query: HOME_FEED_QUERY,
           variables: { first: 10 }
-        });
+        }) as { homeFeed?: any } | null;
         
         if (homeFeedData?.homeFeed) {
           cache.writeQuery({
@@ -113,7 +113,7 @@ export function useCreatePost() {
           const userPostsData = cache.readQuery({
             query: USER_POSTS_QUERY,
             variables: { username, first: 10 }
-          });
+          }) as { userPosts?: any } | null;
           
           if (userPostsData?.userPosts) {
             cache.writeQuery({

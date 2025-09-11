@@ -12,6 +12,7 @@ interface User {
   username: string;
   displayName?: string;
   avatarUrl?: string;
+  isVerified?: boolean;
 }
 
 // 定义认证上下文类型

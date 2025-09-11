@@ -12,6 +12,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 import OptimizedMediaGrid from '@/components/media/OptimizedMediaGrid';
 import PostInteractionButtons from '@/components/post/PostInteractionButtons';
+import PostMoreButton from '@/components/post/PostMoreButton';
 import { ReplyList } from '@/components/replies/ReplyList';
 import UniversalReplyComposer from '@/components/shared/UniversalReplyComposer';
 import { Post } from '@/graphql/types';
@@ -107,6 +108,25 @@ export default function PostDetailView({ post }: PostDetailViewProps) {
                   @{post.author.username}
                 </Link>
               </div>
+              
+              {/* More Button */}
+              <PostMoreButton 
+                post={post}
+                onDelete={() => console.log('Delete post')}
+                onEdit={() => console.log('Edit post')}
+                onPin={() => console.log('Pin post')}
+                onUnpin={() => console.log('Unpin post')}
+                onInsights={() => console.log('View insights')}
+                onChangeReplyPermission={(permission) => console.log('Change reply permission:', permission)}
+                onFollow={() => console.log('Follow user')}
+                onUnfollow={() => console.log('Unfollow user')}
+                onMute={() => console.log('Mute user')}
+                onBlock={() => console.log('Block user')}
+                onReport={() => console.log('Report post')}
+                onNotInterested={() => console.log('Not interested')}
+                isFollowing={false}
+                isPinned={false}
+              />
             </div>
 
             {/* Post Content */}

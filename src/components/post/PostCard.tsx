@@ -1,29 +1,58 @@
 import React from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Post } from '@/graphql/types';
+import { Post, User } from '@/graphql/types';
 import Avatar from '@/components/core/Avatar';
 import VersionedAvatar from '@/components/avatar/VersionedAvatar';
 import UserName from '@/components/core/UserName';
 import TimeAgo from '@/components/core/TimeAgo';
 import OptimizedMediaGrid from '@/components/media/OptimizedMediaGrid';
 import PostInteractionButtons from '@/components/post/PostInteractionButtons';
+import PostMoreButton from '@/components/post/PostMoreButton';
 
 interface PostCardProps {
   post: Post;
+  currentUser?: User;
   onLike?: (postId: string) => void;
   onBookmark?: (postId: string) => void;
   onRepost?: (postId: string) => void;
   onReply?: (postId: string) => void;
+  onDelete?: (postId: string) => void;
+  onEdit?: (postId: string) => void;
+  onPin?: (postId: string) => void;
+  onUnpin?: (postId: string) => void;
+  onChangeReplyPermission?: (postId: string, permission: 'EVERYONE' | 'FOLLOWING' | 'MENTIONED_ONLY') => void;
+  onFollow?: (userId: string) => void;
+  onUnfollow?: (userId: string) => void;
+  onMute?: (userId: string) => void;
+  onBlock?: (userId: string) => void;
+  onReport?: (postId: string) => void;
+  onNotInterested?: (postId: string) => void;
+  isFollowing?: boolean;
+  isPinned?: boolean;
   className?: string;
 }
 
 const PostCard: React.FC<PostCardProps> = ({
   post,
+  currentUser,
   onLike,
   onBookmark,
   onRepost,
   onReply,
+  onDelete,
+  onEdit,
+  onPin,
+  onUnpin,
+  onChangeReplyPermission,
+  onFollow,
+  onUnfollow,
+  onMute,
+  onBlock,
+  onReport,
+  onNotInterested,
+  isFollowing = false,
+  isPinned = false,
   className = '',
 }) => {
   const router = useRouter();
@@ -61,14 +90,37 @@ const PostCard: React.FC<PostCardProps> = ({
         {/* Post content */}
         <div className="flex-grow">
           {/* User info and timestamp */}
-          <div className="flex items-center">
-            <UserName 
-              user={post.author} 
-              verified={post.author.isVerified}
-              onClick={handleUserClick}
-            />
-            <span className="mx-1 text-gray-500">·</span>
-            <TimeAgo date={post.createdAt} />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <UserName 
+                user={post.author} 
+                verified={post.author.isVerified}
+                onClick={handleUserClick}
+              />
+              <span className="mx-1 text-gray-500">·</span>
+              <TimeAgo date={post.createdAt} />
+            </div>
+            
+            {/* More button */}
+            <div onClick={handleActionClick}>
+              <PostMoreButton
+                post={post}
+                currentUser={currentUser}
+                onDelete={() => onDelete?.(post.id)}
+                onEdit={() => onEdit?.(post.id)}
+                onPin={() => onPin?.(post.id)}
+                onUnpin={() => onUnpin?.(post.id)}
+                onChangeReplyPermission={(permission) => onChangeReplyPermission?.(post.id, permission)}
+                onFollow={() => onFollow?.(post.author.id)}
+                onUnfollow={() => onUnfollow?.(post.author.id)}
+                onMute={() => onMute?.(post.author.id)}
+                onBlock={() => onBlock?.(post.author.id)}
+                onReport={() => onReport?.(post.id)}
+                onNotInterested={() => onNotInterested?.(post.id)}
+                isFollowing={isFollowing}
+                isPinned={isPinned}
+              />
+            </div>
           </div>
 
           {/* Post text */}

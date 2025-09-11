@@ -9,6 +9,7 @@ import BannerCrop from '@/components/ui/BannerCrop';
 import { MediaService } from '@/services/mediaService';
 import { userUpdateService } from '@/services/userUpdateService';
 import { Camera } from 'lucide-react';
+import { AdaptiveTooltip } from '@/components/ui/AdaptiveTooltip';
 
 const UPDATE_PROFILE_MUTATION = gql`
   mutation UpdateProfile($input: UpdateProfileInput!) {
@@ -186,7 +187,9 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ user, onClose }) =>
             >
               {loading ? 'Saving...' : 'Save'}
             </button>
-            <button onClick={onClose} className="text-2xl">&times;</button>
+            <AdaptiveTooltip content="Close">
+              <button onClick={onClose} className="text-2xl">&times;</button>
+            </AdaptiveTooltip>
           </div>
         </div>
         <div className="p-4">

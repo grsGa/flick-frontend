@@ -1,13 +1,15 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
+import { useAuth } from '@/hooks/useAuth';
 import Avatar from '@/components/core/Avatar';
 import EmojiPicker, { EmojiClickData } from 'emoji-picker-react';
-import { useAuth } from '@/hooks/useAuth';
+import GifPicker from '@/components/post/GifPicker';
 import { useCreatePost } from '@/hooks/usePosts';
 import { MediaService } from '@/services/mediaService';
-import GifPicker from './GifPicker';
+import { toast } from '@/lib/toast';
+import { AdaptiveTooltip } from '@/components/ui/AdaptiveTooltip';
 
 interface PostModalProps {
   isOpen: boolean;
@@ -620,67 +622,70 @@ const PostModal: React.FC<PostModalProps> = ({ isOpen, onClose }) => {
           <div className="flex items-center space-x-4">
             {/* Emoji Button */}
             <div className="relative">
-              <button
-                onClick={() => {
-                  setShowEmojiPicker(!showEmojiPicker);
-                  setShowGifPicker(false);
-                }}
-                className="w-9 h-9 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-700 hover:text-black transition-colors"
-                title="Emoji"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </button>
+              <AdaptiveTooltip content="Emoji" disabled={showEmojiPicker}>
+                <button
+                  onClick={() => {
+                    setShowEmojiPicker(!showEmojiPicker);
+                    setShowGifPicker(false);
+                  }}
+                  className="w-9 h-9 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-700 hover:text-black transition-colors"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </button>
+              </AdaptiveTooltip>
               
               {/* Emoji Picker */}
               {showEmojiPicker && (
                 <div className="absolute top-12 left-1/2 transform -translate-x-1/2 z-10 bg-white rounded-lg shadow-lg border border-gray-200">
-                  {/* 聊天气泡箭头 */}
-                  <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 w-4 h-4 bg-white border-l border-t border-gray-200 rotate-45"></div>
-                  <EmojiPicker
-                    onEmojiClick={handleEmojiSelect}
-                    width={350}
-                    height={400}
-                    previewConfig={{
-                      showPreview: true
-                    }}
-                    lazyLoadEmojis={true}
-                    skinTonesDisabled={false}
-                    searchDisabled={false}
-                    emojiStyle={"native" as any}
-                    autoFocusSearch={false}
-                  />
-                </div>
-              )}
-            </div>
+                {/* 聊天气泡箭头 */}
+                <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 w-4 h-4 bg-white border-l border-t border-gray-200 rotate-45"></div>
+                <EmojiPicker
+                  onEmojiClick={handleEmojiSelect}
+                  width={350}
+                  height={400}
+                  previewConfig={{
+                    showPreview: true
+                  }}
+                  lazyLoadEmojis={true}
+                  skinTonesDisabled={false}
+                  searchDisabled={false}
+                  emojiStyle={"native" as any}
+                  autoFocusSearch={false}
+                />
+              </div>
+            )}
+          </div>
 
-            {/* Image Upload Button */}
+          {/* Image Upload Button */}
+          <AdaptiveTooltip content="Media">
             <button 
               onClick={handleImageUploadClick}
               disabled={selectedImages.length >= 4 || !!selectedGif || !!pollData}
               className={`w-9 h-9 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors ${
                 selectedImages.length >= 4 || !!selectedGif || !!pollData ? 'text-gray-400 cursor-not-allowed' : 'text-gray-700 hover:text-black'
               }`}
-              title="Media"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
             </button>
-            
-            {/* Hidden File Input */}
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/jpeg,image/png,image/gif,image/webp,video/mp4,video/webm,video/quicktime,video/x-msvideo,.mp4,.webm,.mov,.avi"
-              multiple
-              onChange={handleImageSelect}
-              className="hidden"
-            />
+          </AdaptiveTooltip>
+          
+          {/* Hidden File Input */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/gif,image/webp,video/mp4,video/webm,video/quicktime,video/x-msvideo,.mp4,.webm,.mov,.avi"
+            multiple
+            onChange={handleImageSelect}
+            className="hidden"
+          />
 
-            {/* GIF Button */}
-            <div className="relative">
+          {/* GIF Button */}
+          <div className="relative">
+            <AdaptiveTooltip content="GIF" disabled={showGifPicker}>
               <button
                 onClick={() => {
                   setShowGifPicker(!showGifPicker);
@@ -690,7 +695,6 @@ const PostModal: React.FC<PostModalProps> = ({ isOpen, onClose }) => {
                 className={`w-9 h-9 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors ${
                   selectedImages.length > 0 || !!pollData ? 'text-gray-400 cursor-not-allowed' : 'text-gray-700 hover:text-black'
                 }`}
-                title="GIF"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 4V2a1 1 0 011-1h8a1 1 0 011 1v2m-9 0h10m-9 0a2 2 0 00-2 2v14a2 2 0 002 2h8a2 2 0 002-2V6a2 2 0 00-2-2" />
@@ -698,16 +702,18 @@ const PostModal: React.FC<PostModalProps> = ({ isOpen, onClose }) => {
                   <circle cx="12" cy="12" r="1" fill="currentColor" />
                 </svg>
               </button>
-              
-              {/* GIF Picker */}
-              <GifPicker
-                isOpen={showGifPicker}
-                onClose={() => setShowGifPicker(false)}
-                onGifSelect={handleGifSelectWithExclusivity}
-              />
-            </div>
+            </AdaptiveTooltip>
+            
+            {/* GIF Picker */}
+            <GifPicker
+              isOpen={showGifPicker}
+              onClose={() => setShowGifPicker(false)}
+              onGifSelect={handleGifSelectWithExclusivity}
+            />
+          </div>
 
-            {/* Poll Button */}
+          {/* Poll Button */}
+          <AdaptiveTooltip content="Poll">
             <button 
               onClick={handlePollToggle}
               disabled={!!selectedGif || selectedImages.length > 0}
@@ -715,119 +721,120 @@ const PostModal: React.FC<PostModalProps> = ({ isOpen, onClose }) => {
                 selectedGif || selectedImages.length > 0 ? 'text-gray-400 cursor-not-allowed' : 
                 showPollEditor ? 'text-black bg-gray-100' : 'text-gray-700 hover:text-black'
               }`}
-              title="Poll"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
             </button>
-          </div>
+          </AdaptiveTooltip>
+        </div>
 
-          {/* Who can reply button */}
-          <div className="relative" ref={replyPermissionRef}>
-            <button
-              onClick={() => setShowReplyPermissionDropdown(!showReplyPermissionDropdown)}
-              className="text-blue-500 font-bold text-sm hover:text-blue-600 transition-colors flex items-center gap-1"
-            >
-              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-              </svg>
-              {replyPermission === 'EVERYONE' ? 'Everyone can reply' : 
-               replyPermission === 'FOLLOWING' ? 'Accounts you follow' : 
-               'Only accounts you mention'}
-            </button>
+        {/* Who can reply button */}
+        <div className="relative" ref={replyPermissionRef}>
+          <button
+            onClick={() => setShowReplyPermissionDropdown(!showReplyPermissionDropdown)}
+            className="text-blue-500 font-bold text-sm hover:text-blue-600 transition-colors flex items-center gap-1"
+          >
+            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+            </svg>
+            {replyPermission === 'EVERYONE' ? 'Everyone can reply' : 
+             replyPermission === 'FOLLOWING' ? 'Accounts you follow' : 
+             'Only accounts you mention'}
+          </button>
 
-            {/* Reply Permission Dropdown */}
-            {showReplyPermissionDropdown && (
-              <div className="absolute top-full left-0 mt-2 bg-white rounded-lg shadow-lg border border-gray-200 py-2 min-w-48 z-20">
-                {/* 聊天气泡箭头 */}
-                <div className="absolute -top-2 left-6 w-4 h-4 bg-white border-l border-t border-gray-200 rotate-45"></div>
-                <div className="px-4 py-2 text-sm font-semibold text-gray-900 border-b border-gray-100">
-                  Who can reply?
-                </div>
-                
-                <button
-                  onClick={() => {
-                    setReplyPermission('EVERYONE');
-                    setShowReplyPermissionDropdown(false);
-                  }}
-                  className={`w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors ${
-                    replyPermission === 'EVERYONE' ? 'bg-blue-50' : ''
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="font-medium text-gray-900">Everyone</div>
-                      <div className="text-sm text-gray-500">Anyone can reply</div>
-                    </div>
-                    {replyPermission === 'EVERYONE' && (
-                      <svg className="w-5 h-5 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                      </svg>
-                    )}
-                  </div>
-                </button>
-
-                <button
-                  onClick={() => {
-                    setReplyPermission('FOLLOWING');
-                    setShowReplyPermissionDropdown(false);
-                  }}
-                  className={`w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors ${
-                    replyPermission === 'FOLLOWING' ? 'bg-blue-50' : ''
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="font-medium text-gray-900">Accounts you follow</div>
-                      <div className="text-sm text-gray-500">Only people you follow can reply</div>
-                    </div>
-                    {replyPermission === 'FOLLOWING' && (
-                      <svg className="w-5 h-5 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                      </svg>
-                    )}
-                  </div>
-                </button>
-
-                <button
-                  onClick={() => {
-                    setReplyPermission('MENTIONED_ONLY');
-                    setShowReplyPermissionDropdown(false);
-                  }}
-                  className={`w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors ${
-                    replyPermission === 'MENTIONED_ONLY' ? 'bg-blue-50' : ''
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="font-medium text-gray-900">Only accounts you mention</div>
-                      <div className="text-sm text-gray-500">Only mentioned users can reply</div>
-                    </div>
-                    {replyPermission === 'MENTIONED_ONLY' && (
-                      <svg className="w-5 h-5 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                      </svg>
-                    )}
-                  </div>
-                </button>
+          {/* Reply Permission Dropdown */}
+          {showReplyPermissionDropdown && (
+            <div className="absolute top-full left-0 mt-2 bg-white rounded-lg shadow-lg border border-gray-200 py-2 min-w-48 z-20">
+              {/* 聊天气泡箭头 */}
+              <div className="absolute -top-2 left-6 w-4 h-4 bg-white border-l border-t border-gray-200 rotate-45"></div>
+              <div className="px-4 py-2 text-sm font-semibold text-gray-900 border-b border-gray-100">
+                Who can reply?
               </div>
-            )}
-          </div>
+              
+              <button
+                onClick={() => {
+                  setReplyPermission('EVERYONE');
+                  setShowReplyPermissionDropdown(false);
+                }}
+                className={`w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors ${
+                  replyPermission === 'EVERYONE' ? 'bg-blue-50' : ''
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="font-medium text-gray-900">Everyone</div>
+                    <div className="text-sm text-gray-500">Anyone can reply</div>
+                  </div>
+                  {replyPermission === 'EVERYONE' && (
+                    <svg className="w-5 h-5 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                  )}
+                </div>
+              </button>
+
+              <button
+                onClick={() => {
+                  setReplyPermission('FOLLOWING');
+                  setShowReplyPermissionDropdown(false);
+                }}
+                className={`w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors ${
+                  replyPermission === 'FOLLOWING' ? 'bg-blue-50' : ''
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="font-medium text-gray-900">Accounts you follow</div>
+                    <div className="text-sm text-gray-500">Only people you follow can reply</div>
+                  </div>
+                  {replyPermission === 'FOLLOWING' && (
+                    <svg className="w-5 h-5 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                  )}
+                </div>
+              </button>
+
+              <button
+                onClick={() => {
+                  setReplyPermission('MENTIONED_ONLY');
+                  setShowReplyPermissionDropdown(false);
+                }}
+                className={`w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors ${
+                  replyPermission === 'MENTIONED_ONLY' ? 'bg-blue-50' : ''
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="font-medium text-gray-900">Only accounts you mention</div>
+                    <div className="text-sm text-gray-500">Only mentioned users can reply</div>
+                  </div>
+                  {replyPermission === 'MENTIONED_ONLY' && (
+                    <svg className="w-5 h-5 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                  )}
+                </div>
+              </button>
+            </div>
+          )}
+        </div>
 
           {/* Post Button */}
-          <button
-            onClick={handlePost}
-            disabled={postLoading || isUploadingMedia || (!content.trim() && !selectedGif && selectedImages.length === 0 && !pollData) || new TextEncoder().encode(content).length > maxLength}
-            className={`px-6 py-2 rounded-full font-bold text-sm transition-colors ${
-              (content.trim() || selectedGif || selectedImages.length > 0 || pollData) && new TextEncoder().encode(content).length <= maxLength && !postLoading && !isUploadingMedia
-                ? 'bg-black text-white hover:bg-gray-800'
-                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-            }`}
-            title="Post"
-          >
-            {isUploadingMedia ? 'Uploading...' : postLoading ? 'Posting...' : 'Post'}
-          </button>
+          <AdaptiveTooltip content="Post">
+            <button
+              onClick={handlePost}
+              disabled={postLoading || isUploadingMedia || (!content.trim() && !selectedGif && selectedImages.length === 0 && !pollData) || new TextEncoder().encode(content).length > maxLength}
+              className={`px-6 py-2 rounded-full font-bold text-sm transition-colors ${
+                (content.trim() || selectedGif || selectedImages.length > 0 || pollData) && new TextEncoder().encode(content).length <= maxLength && !postLoading && !isUploadingMedia
+                  ? 'bg-black text-white hover:bg-gray-800'
+                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+              }`}
+            >
+              {isUploadingMedia ? 'Uploading...' : postLoading ? 'Posting...' : 'Post'}
+            </button>
+          </AdaptiveTooltip>
         </div>
       </div>
     </div>

@@ -20,6 +20,8 @@ const LOGIN_MUTATION = gql`
   }
 `;
 
+// Note: Backend LoginInput now uses "identifier" field which accepts username, email, or phone
+
 const LoginPage: React.FC = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -55,16 +57,13 @@ const LoginPage: React.FC = () => {
     setError('');
     
     try {
-      // Dynamically build the input object based on user input
-      const isEmail = username.includes('@');
-      const input = {
-        password,
-        ...(isEmail ? { email: username } : { username: username }),
-      };
-
+      // Backend accepts identifier (username, email, or phone)
       const { data } = await loginMutation({
         variables: {
-          input: input,
+          input: {
+            identifier: username,
+            password: password,
+          },
         },
       });
       

@@ -6,8 +6,7 @@ type AuthPayload {
 }
 
 input LoginInput {
-  username: String
-  email: String
+  identifier: String!  # Can be username, email, or phone
   password: String!
 }
 

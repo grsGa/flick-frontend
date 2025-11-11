@@ -204,11 +204,50 @@ export function AuthProvider({ children }: AuthProviderProps) {
           const parsedUser = JSON.parse(storedUser);
           if (parsedUser && typeof parsedUser.id === "string" && typeof parsedUser.username === "string") {
             setUser(parsedUser);
+            
+            console.log('[Auth] Initial mount - user loaded from localStorage', {
+              username: parsedUser.username,
+              id: parsedUser.id
+            });
+            
             // Sync user info on app load to ensure latest data - debounced
+            // Use a local function to avoid dependency on syncUserInfo
             if (validationDebounceTimeout.current) {
               clearTimeout(validationDebounceTimeout.current);
             }
-            validationDebounceTimeout.current = setTimeout(() => syncUserInfo(parsedUser), 1000);
+            
+            validationDebounceTimeout.current = setTimeout(async () => {
+              if (typeof window !== "undefined" && storedToken) {
+                try {
+                  const { data } = await apolloClient.query({
+                    query: gql`
+                      query UserByUsername($username: String!) {
+                        userByUsername(username: $username) {
+                          id
+                          username
+                          displayName
+                          avatarUrl
+                        }
+                      }
+                    `,
+                    variables: { username: parsedUser.username },
+                    fetchPolicy: 'network-only'
+                  });
+
+                  if (data?.userByUsername) {
+                    const updatedUser = {
+                      ...parsedUser,
+                      ...data.userByUsername
+                    };
+                    setUser(updatedUser);
+                    localStorage.setItem("user", JSON.stringify(updatedUser));
+                    console.log('[Auth] User info synced successfully');
+                  }
+                } catch (error) {
+                  console.error('[Auth] Failed to sync user info on mount:', error);
+                }
+              }
+            }, 1000);
           } else {
             throw new Error("Invalid user data in localStorage");
           }
@@ -226,8 +265,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
     
     return () => {
       setIsMounted(false);
+      if (validationDebounceTimeout.current) {
+        clearTimeout(validationDebounceTimeout.current);
+      }
     };
-  }, [syncUserInfo]);
+  }, []); // ✅ 空依赖数组 - 只在组件挂载时执行一次
 
   // 登录方法
   const login = useCallback((token: string, user: User) => {
@@ -287,8 +329,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
       }
       
       // Check if token has required fields
-      if (!payload.user_id || !payload.username) {
-        console.log('[Auth] Token missing required fields');
+      // Note: username is stored in localStorage user object, not in JWT
+      if (!payload.user_id) {
+        console.log('[Auth] Token missing user_id');
         return false;
       }
       
@@ -344,7 +387,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         clearTimeout(validationDebounceTimeout.current);
       }
     };
-  }, [isAuthenticated, user, isMounted]); // Added isMounted to deps
+  }, [isAuthenticated, isMounted, validateUserExists]); // ✅ 移除user，使用validateUserExists（它已经依赖user）
 
   // 提供上下文值
   const contextValue: AuthContextType = useMemo(() => ({

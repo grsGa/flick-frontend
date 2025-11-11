@@ -55,8 +55,10 @@ export class MediaService {
       }
       
       // Check required fields
-      if (!payload.user_id || !payload.username) {
-        this.handleAuthenticationError('Invalid token claims');
+      // Note: username is stored in localStorage user object, not in JWT
+      // Backend JWT only contains user_id, exp, and iat
+      if (!payload.user_id) {
+        this.handleAuthenticationError('Invalid token claims: missing user_id');
         return false;
       }
       
